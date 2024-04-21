@@ -47,6 +47,8 @@ int main()
                     view.mouse_down(event.button.x, event.button.y);
                 else if (event.button.button == SDL_BUTTON_RIGHT)
                     view.mouse_right_down(event.button.x, event.button.y);
+                else if (event.button.button == SDL_BUTTON_MIDDLE)
+                    view.mouse_middle_down(event.button.x, event.button.y);
             }
         }
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);

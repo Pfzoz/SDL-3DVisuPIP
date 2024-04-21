@@ -21,6 +21,34 @@ public:
         this->segments = segments;
         this->vertices = vertices;
     }
+    void destroy()
+    {
+        for (int i = 0; i < vertices.size(); i++)
+            delete vertices[i];
+    };
+
+    MatrixXd get_matrix()
+    {
+        MatrixXd matrix(3, vertices.size());
+        for (int i = 0; i < vertices.size(); i++)
+            matrix.col(i) = *vertices[i];
+        return matrix;
+    }
+
+    MatrixXd get_hmatrix()
+    {
+        MatrixXd matrix(4, vertices.size());
+        for (int i = 0; i < vertices.size(); i++)
+            matrix.col(i).head(3) = *vertices[i];
+        return matrix;
+    }
+
+    void trans_rotate(float x = 0, float y = 0, float z = 0)
+    {
+        if (x != 0)
+        {
+        }
+    }
 };
 
 class GObject2d
@@ -34,6 +62,34 @@ public:
     {
         this->segments = segments;
         this->vertices = vertices;
+    }
+    void destroy()
+    {
+        for (int i = 0; i < vertices.size(); i++)
+            delete vertices[i];
+    };
+
+    MatrixXd get_matrix()
+    {
+        MatrixXd matrix(2, vertices.size());
+        for (int i = 0; i < vertices.size(); i++)
+            matrix.col(i) = *vertices[i];
+        return matrix;
+    }
+
+    MatrixXd get_hmatrix()
+    {
+        MatrixXd matrix(3, vertices.size());
+        for (int i = 0; i < vertices.size(); i++)
+            matrix.col(i).head(2) = *vertices[i];
+        return matrix;
+    }
+
+    void trans_rotate(float x = 0, float y = 0)
+    {
+        if (x != 0)
+        {
+        }
     }
 };
 

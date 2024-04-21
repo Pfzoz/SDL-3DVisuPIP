@@ -2,6 +2,8 @@
 #define VIEW_H
 
 #include "canvas.hh"
+#include "../pipeline/modelling/gobject.hh"
+#include "../utils.hh"
 
 class View
 {
@@ -34,6 +36,14 @@ public:
     void mouse_right_down(int x, int y)
     {
         canvas.clear();
+    }
+
+    void mouse_middle_down(int x, int y)
+    {
+        Wireframe wireframe = canvas.wireframe();
+        GObject3d wireframeObject = wireframe.revolution();
+        printf("== Wireframe Matrix ==\n");
+        print_matrix(wireframeObject.get_hmatrix());
     }
 };
 
