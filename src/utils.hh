@@ -12,7 +12,7 @@ void print_matrix(MatrixXd mat)
     {
         for (int j = 0; j < mat.cols(); j++)
         {
-            printf("%.5f\t", mat(i, j));
+            printf("%.6f\t", mat(i, j));
         }
         printf("\n");
     }
@@ -22,7 +22,7 @@ void print_vector(VectorXd vec)
 {
     for (int i = 0; i < vec.size(); i++)
     {
-        printf("%.5f\t", vec(i));
+        printf("%.6f\t", vec(i));
     }
     printf("\n");
 }

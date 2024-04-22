@@ -59,7 +59,7 @@ public:
         std::vector<SDL_FPoint> transformed_points;
         for (int i = 0; i < this->points.size(); i++)
             transformed_points.push_back({this->points[i].x * this->l_width, this->points[i].y * this->l_height});
-        return Wireframe(this->points);
+        return Wireframe(transformed_points);
     }
 };
 
