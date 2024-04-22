@@ -26,4 +26,11 @@ Matrix4d z_rotation_matrix3d(double angle)
     return mat;
 }
 
+Matrix4d translate_matrix3d(double x, double y, double z)
+{
+    Matrix4d mat;
+    mat << 1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, 1;
+    return mat;
+}
+
 #endif

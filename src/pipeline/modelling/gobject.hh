@@ -6,9 +6,9 @@
 #include "geometry.hh"
 #include "transformation.hh"
 
-using Eigen::MatrixXd;
 using Eigen::Matrix3d;
 using Eigen::Matrix4d;
+using Eigen::MatrixXd;
 using Eigen::Vector2d;
 using Eigen::Vector3d;
 
@@ -57,6 +57,64 @@ public:
         for (int i = 0; i < this->vertices.size(); i++)
             this->vertices[i] = result.col(i).head(3);
     }
+
+    void translate(float x = 0, float y = 0, float z = 0)
+    {
+        MatrixXd result = translate_matrix3d(x, y, z) * this->get_hmatrix();
+        for (int i = 0; i < this->vertices.size(); i++)
+            this->vertices[i] = result.col(i).head(3);
+    }
+
+    void translate(Vector3d v)
+    {
+        this->translate(v.x(), v.y(), v.z());
+    }
+
+    void mirror(bool x, bool y, bool z)
+    {
+        if (x)
+        {
+            for (int i = 0; i < this->vertices.size(); i++)
+                this->vertices[i].x() = -this->vertices[i].x();
+        }
+        if (y)
+        {
+            for (int i = 0; i < this->vertices.size(); i++)
+                this->vertices[i].y() = -this->vertices[i].y();
+        }
+        if (z)
+        {
+            for (int i = 0; i < this->vertices.size(); i++)
+                this->vertices[i].z() = -this->vertices[i].z();
+        }
+    }
+
+    Vector3d get_center()
+    {
+        float min_x, max_x, min_y, max_y, min_z, max_z;
+        min_x = this->vertices[0].x();
+        max_x = this->vertices[0].x();
+        min_y = this->vertices[0].y();
+        max_y = this->vertices[0].y();
+        min_z = this->vertices[0].z();
+        max_z = this->vertices[0].z();
+        for (int i = 1; i < this->vertices.size(); i++)
+        {
+            if (this->vertices[i].x() < min_x)
+                min_x = this->vertices[i].x();
+            if (this->vertices[i].x() > max_x)
+                max_x = this->vertices[i].x();
+            if (this->vertices[i].y() < min_y)
+                min_y = this->vertices[i].y();
+            if (this->vertices[i].y() > max_y)
+                max_y = this->vertices[i].y();
+            if (this->vertices[i].z() < min_z)
+                min_z = this->vertices[i].z();
+            if (this->vertices[i].z() > max_z)
+                max_z = this->vertices[i].z();
+        }
+        return Vector3d((min_x + max_x) / 2, (min_y + max_y) / 2, (min_z + max_z) / 2);
+    }
 };
 
 class GObject2d
@@ -93,9 +151,6 @@ public:
 
     void trans_rotate(float x = 0, float y = 0)
     {
-        if (x != 0)
-        {
-        }
     }
 };
 
