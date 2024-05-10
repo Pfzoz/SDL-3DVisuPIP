@@ -1,4 +1,4 @@
-#include "view.hpp"
+#include <view.hpp>
 
 // Constructor
 View::View(int screen_width, int screen_height)

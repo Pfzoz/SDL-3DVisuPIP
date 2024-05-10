@@ -12,6 +12,7 @@ add_executable(SDL3VisuPIP.x main.cpp)
 
 target_link_libraries(
     SDL3VisuPIP.x
-    PRIVATE
+    PUBLIC
     View
+    SDL2::SDL2
 )

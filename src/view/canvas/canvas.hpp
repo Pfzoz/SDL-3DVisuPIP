@@ -1,7 +1,7 @@
 #ifndef CANVAS_H
 #define CANVAS_H
 
-#include <SDL2/SDL.h>
+#include <SDL2/SDL_main.h>
 #include <vector>
 #include "../../pipeline/pipeline.hpp"
 #include "../primitives/primitives.hpp"

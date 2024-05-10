@@ -1,9 +1,9 @@
 #ifndef VIEW_H
 #define VIEW_H
 
-#include "../utils.hpp"
-#include "../poly/poly.hpp"
-#include "canvas/canvas.hpp"
+#include <utils.hpp>
+#include <poly.hpp>
+#include <canvas/canvas.hpp>
 
 class View
 {

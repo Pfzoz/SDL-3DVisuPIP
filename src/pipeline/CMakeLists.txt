@@ -4,6 +4,6 @@ add_library(Pipeline STATIC
 
 target_include_directories(Pipeline PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(Pipeline
-    PRIVATE
+target_link_libraries(Pipeline  
+    PUBLIC
     Poly)

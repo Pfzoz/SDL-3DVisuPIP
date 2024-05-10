@@ -1,5 +1,4 @@
-#include <SDL2/SDL_main.h>
-#include "view/view.hpp"
+#include <view.hpp>
 
 int screen_width = 640, screen_height = 480;
 
