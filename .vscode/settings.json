@@ -1,7 +1,11 @@
 {
     "files.associations": {
+        "*.cpp": "cpp",
         "vector": "cpp",
         "new": "cpp",
-        "core": "cpp"
-    }
+        "core": "cpp",
+        "chrono": "cpp",
+        "functional": "cpp"
+    },
+    "cmake.sourceDirectory": "/home/pedrozoz/Repositories/University/cg/sdl-3d-pipeline"
 }
