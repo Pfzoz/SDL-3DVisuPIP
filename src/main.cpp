@@ -1,7 +1,7 @@
 #include <SDL2/SDL.h>
 #include "view/view.hpp"
 
-float screen_width = 640, screen_height = 480;
+int screen_width = 640, screen_height = 480;
 
 int main()
 {

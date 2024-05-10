@@ -6,8 +6,7 @@ target_include_directories(Canvas PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/primitives)
 
 target_link_libraries(Canvas  
     PRIVATE 
-    Pipeline
-    ${SDL2_LIBRARIES})
+    Pipeline)
 
 add_library(Primitives STATIC 
     primitives/primitives.hpp 
@@ -25,5 +24,4 @@ target_link_libraries(View
     PRIVATE 
     Canvas
     Primitives
-    Utils
-    ${SDL2_LIBRARIES})
+    Utils)

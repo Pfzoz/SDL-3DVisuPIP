@@ -14,5 +14,4 @@ target_link_libraries(
     SDL3VisuPIP.x
     PRIVATE
     View
-    ${SDL2_LIBRARIES}
 )

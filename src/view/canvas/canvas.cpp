@@ -1,4 +1,5 @@
 #include "canvas.hpp"
+#include <iostream>
 
 Canvas::Canvas(){};
 Canvas::Canvas(int x, int y, int width, int height)
@@ -42,7 +43,11 @@ void Canvas::set_logical_size(int width, int height)
 Poly::Polyhedron Canvas::get_wireframe()
 {
     std::vector<SDL_FPoint> transformed_points;
+    
+    
     for (int i = 0; i < this->points.size(); i++)
+    {
         transformed_points.push_back({this->points[i].x * this->l_width, this->points[i].y * this->l_height});
+    }
     return Pipeline::wireframe(transformed_points, 3);
 }

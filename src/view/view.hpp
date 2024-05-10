@@ -19,7 +19,7 @@ private:
 public:
 
     // Constructor
-    View(float screen_width, float screen_height);
+    View(int screen_width, int screen_height);
     
     // Main Rendering Loop
     void render(SDL_Renderer *renderer);

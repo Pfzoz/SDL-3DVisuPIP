@@ -24,6 +24,7 @@ Poly::Polyhedron Pipeline::wireframe(std::vector<SDL_FPoint> generatrix_points, 
     Eigen::Vector3d center = slice.get_center();
     slice.translate(-center);
     slice.mirror(false, true, false);
+    slice.translate(0, std::abs(center(1)), 0);
 
     // Generate
     Poly::Polyhedron result(slice);
@@ -47,7 +48,7 @@ Poly::Polyhedron Pipeline::wireframe(std::vector<SDL_FPoint> generatrix_points, 
         {
             result.vertices.push_back(slice.vertices[unshared_vertices[j]]);
             Poly::Segment connection;
-            connection.p1 = &result.vertices[unshared_vertices[j-(i+1)*unshared_vertices.size()]];
+            connection.p1 = &result.vertices[unshared_vertices[j - (i + 1) * unshared_vertices.size()]];
             connection.p2 = &result.vertices[unshared_vertices[j]];
             result.segments.push_back(connection);
         }

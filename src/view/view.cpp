@@ -1,8 +1,9 @@
 #include "view.hpp"
 
 // Constructor
-View::View(float screen_width, float screen_height)
+View::View(int screen_width, int screen_height)
 {
+    this->canvas = Canvas(0, 0, screen_width, screen_height);
     this->canvas.set_logical_size(screen_width, screen_height);
 }
 
