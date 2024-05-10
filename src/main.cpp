@@ -1,4 +1,4 @@
-#include <SDL2/SDL.h>
+#include <SDL2/SDL_main.h>
 #include "view/view.hpp"
 
 int screen_width = 640, screen_height = 480;
@@ -14,7 +14,6 @@ int main()
 
     SDL_Window *window = SDL_CreateWindow("SDL3DVisuPIP", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screen_width, screen_height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     SDL_Renderer *renderer = SDL_CreateRenderer(window, 1, SDL_RENDERER_ACCELERATED);
-
     View view = View(screen_width, screen_height);
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
@@ -39,6 +38,7 @@ int main()
 
         SDL_RenderPresent(renderer);
     }
-
+    SDL_DestroyWindow(window);
+    SDL_DestroyRenderer(renderer);
     SDL_Quit();
 }
