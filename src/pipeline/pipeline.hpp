@@ -5,7 +5,7 @@
 #include <vector>
 #include <poly.hpp>
 
-namespace Pipeline
+namespace Pip
 {
     // Wireframe
     Poly::Polyhedron wireframe(std::vector<SDL_FPoint> generatrix, int slices);
@@ -14,9 +14,8 @@ namespace Pipeline
     class Pipeline
     {
     public:
-        static Pipeline get_pipeline();
+        static Pipeline &get_pipeline();
     private:
-        Pipeline *instance = nullptr;
         Pipeline();
     };
 

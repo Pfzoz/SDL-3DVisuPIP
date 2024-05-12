@@ -1,34 +1,45 @@
 #include "poly.hpp"
 
+// Struct Functions
+
+bool Poly::operator==(const Poly::Segment &lhs, const Poly::Segment &rhs)
+{
+    return (lhs.p1 == rhs.p1 && lhs.p2 == rhs.p2);
+}
+
+bool Poly::operator==(const Poly::Face &lhs, const Poly::Face &rhs)
+{
+    if (lhs.segments.size() != rhs.segments.size())
+        return false;
+    for (size_t i = 0; i < lhs.segments.size(); i++)
+    {
+        if (lhs.segments[i] != rhs.segments[i])
+            return false;
+    }
+    return true;
+}
+
 // Constructors
 Poly::Polyhedron::Polyhedron(){};
 
-Poly::Polyhedron::Polyhedron(std::vector<Segment> segments, std::vector<Eigen::Vector3d> vertices)
+Poly::Polyhedron::Polyhedron(const std::vector<Segment> segments, const std::vector<Eigen::Vector3d> vertices)
 {
-    this->segments = segments;
     this->vertices = vertices;
+    this->segments = segments;
 }
 
-Poly::Polyhedron::Polyhedron(const Polyhedron& other)
+Poly::Polyhedron::Polyhedron(const Polyhedron &other)
 {
-    for (Eigen::Vector3d vector : other.vertices)
-        this->vertices.push_back(vector);
-
-    for (Poly::Segment segment : other.segments)
-    {
-        Poly::Segment new_segment;
-        for (Eigen::Vector3d vector : this->vertices)
-        {
-            if (*segment.p1 == vector)
-                new_segment.p1 = &vector;
-            else if (*segment.p2 == vector)
-                new_segment.p2 = &vector;
-        }
-        this->segments.push_back(new_segment);
-    }
+    this->vertices = other.vertices;
+    this->segments = other.segments;
 }
 
 // Getters
+Eigen::Vector3d Poly::Polyhedron::get_vertex(size_t index)
+{
+    return this->vertices[index];
+}
+
 Eigen::MatrixXd Poly::Polyhedron::get_matrix()
 {
     Eigen::MatrixXd matrix(3, vertices.size());
@@ -93,7 +104,11 @@ void Poly::Polyhedron::translate(float x, float y, float z)
 {
     Eigen::MatrixXd result = translate_matrix3d(x, y, z) * this->get_hmatrix();
     for (int i = 0; i < this->vertices.size(); i++)
-        this->vertices[i] = result.col(i).head(3);
+    {
+        this->vertices[i](0) = result(0, i);
+        this->vertices[i](1) = result(1, i);
+        this->vertices[i](2) = result(2, i);
+    }
 }
 
 void Poly::Polyhedron::translate(Eigen::Vector3d v)

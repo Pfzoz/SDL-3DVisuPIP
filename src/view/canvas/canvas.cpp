@@ -1,5 +1,4 @@
 #include "canvas.hpp"
-#include <iostream>
 
 Canvas::Canvas(){};
 Canvas::Canvas(int x, int y, int width, int height)
@@ -7,7 +6,7 @@ Canvas::Canvas(int x, int y, int width, int height)
     this->geometry = {x, y, width, height};
 }
 
-void Canvas::render(SDL_Renderer *renderer)
+void Canvas::draw(SDL_Renderer *renderer)
 {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderDrawRect(renderer, &geometry);
@@ -40,14 +39,14 @@ void Canvas::set_logical_size(int width, int height)
     this->l_height = height;
 }
 
-Poly::Polyhedron Canvas::get_wireframe()
+Poly::Polyhedron Canvas::get_wireframe(int slices_amount)
 {
     std::vector<SDL_FPoint> transformed_points;
     
     
     for (int i = 0; i < this->points.size(); i++)
     {
-        transformed_points.push_back({this->points[i].x * this->l_width, this->points[i].y * this->l_height});
+        transformed_points.push_back(SDL_FPoint{this->points[i].x * (float)this->l_width, this->points[i].y * (float)this->l_height});
     }
-    return Pipeline::wireframe(transformed_points, 3);
+    return Pip::wireframe(transformed_points, slices_amount);
 }
