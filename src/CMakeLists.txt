@@ -1,4 +1,5 @@
 include(FetchContent)
+set(CMAKE_CXX_STANDARD 20)
 
 FetchContent_Declare(
     SDL2
@@ -12,21 +13,13 @@ FetchContent_Declare(
     eigen
     GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
     GIT_TAG master
-    FIND_PACKAGE_ARGS NAMES Eigen3 3.4 REQUIRED NO_MODULE
+    FIND_PACKAGE_ARGS NAMES Eigen3 REQUIRED
 )
-FetchContent_MakeAvailable(eigen)
-
-FetchContent_GetProperties(eigen)
-if(NOT eigen_POPULATED)
-  
-  FetchContent_Populate(eigen)
-  add_subdirectory(${eigen_SOURCE_DIR} ${eigen_BINARY_DIR})
-endif()
+add_subdirectory(eigen)
 
 FetchContent_Declare(
   imgui
   GIT_REPOSITORY https://github.com/ocornut/imgui.git
-  # docking-latest
   GIT_TAG v1.90.6-docking
   FIND_PACKAGE_ARGS NAMES imgui REQUIRED
 )
