@@ -9,12 +9,19 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(SDL2)
 
 FetchContent_Declare(
-    Eigen3
+    eigen
     GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-    GIT_TAG 3147391d
+    GIT_TAG master
     FIND_PACKAGE_ARGS NAMES Eigen3 3.4 REQUIRED NO_MODULE
 )
-FetchContent_MakeAvailable(Eigen3)
+FetchContent_MakeAvailable(eigen)
+
+FetchContent_GetProperties(eigen)
+if(NOT eigen_POPULATED)
+  
+  FetchContent_Populate(eigen)
+  add_subdirectory(${eigen_SOURCE_DIR} ${eigen_BINARY_DIR})
+endif()
 
 FetchContent_Declare(
   imgui

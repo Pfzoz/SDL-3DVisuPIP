@@ -1,6 +1,6 @@
-#include <eigen3/Eigen/Core>
 #include <iostream>
 #include "pipeline.hpp"
+#include <map>
 
 Pip::Pipeline::Pipeline() {}
 
@@ -26,22 +26,18 @@ Poly::Polyhedron Pip::wireframe(std::vector<SDL_FPoint> generatrix_points, int s
     for (size_t i = 1; i < vectors.size(); i++)
         segments.push_back(Poly::Segment{i - 1, i});
 
-    Poly::Polyhedron slice(segments, vectors);
-
-    // Translate to origin & Mirror
-    Eigen::Vector3d center = slice.get_center();
-    slice.translate(-center);
-    slice.mirror(false, true, false);
-    slice.translate(0, std::abs(center(1)), 0);
+    Poly::Polyhedron slice(segments, vectors, {});
 
     // Generate
     Poly::Polyhedron result = slice;
 
-    std::vector<size_t> unshared_vertices;
+    std::vector<size_t> unshared_vertices, shared_vertices;
     for (size_t i = 0; i < slice.vertices.size(); i++)
     {
         if (slice.vertices[i].y() != 0)
             unshared_vertices.push_back(i);
+        else
+            shared_vertices.push_back(i);
     }
 
     Poly::Polyhedron previous_slice = slice;
@@ -49,79 +45,136 @@ Poly::Polyhedron Pip::wireframe(std::vector<SDL_FPoint> generatrix_points, int s
     float degrees = 360 / (float)slices;
     float radians = degrees * (M_PI / 180);
 
+    std::map<size_t, size_t> unshared_map;
+    for (int i = 0; i < unshared_vertices.size(); i++)
+        unshared_map[unshared_vertices[i]] = i;
+    printf("Unshared vertices: %i\n", unshared_vertices.size());
+    // Make rotations and connections
     for (int i = 0; i < slices - 1; i++)
     {
         slice.rotate(radians, 0, 0);
+        int new_vertices_pos = slice.vertices.size() + i * unshared_vertices.size();
+        int previous_vertices_pos = slice.vertices.size() + (i - 1) * unshared_vertices.size();
+        // Connct the internal segments for the new slices
+        for (int j = 0; j < slice.segments.size(); j++)
+        {
+            bool is_p1_shared = true;
+            bool is_p2_shared = true;
+            for (int k = 0; k < unshared_vertices.size(); k++)
+            {
+                if (slice.segments[j].p1 == unshared_vertices[k])
+                    is_p1_shared = false;
+                if (slice.segments[j].p2 == unshared_vertices[k])
+                    is_p2_shared = false;
+                if (!is_p1_shared && !is_p2_shared)
+                    break;
+            }
+            if (!is_p1_shared || !is_p2_shared)
+            {
+                Poly::Segment segment_copy = slice.segments[j];
+                if (!is_p1_shared)
+                    segment_copy.p1 = new_vertices_pos + (unshared_map[segment_copy.p1] % unshared_vertices.size());
+                if (!is_p2_shared)
+                    segment_copy.p2 = new_vertices_pos + (unshared_map[segment_copy.p2] % unshared_vertices.size());
+                result.segments.push_back(segment_copy);
+            }
+        }
+        // Connect the new slice with previous slice
         for (int j = 0; j < unshared_vertices.size(); j++)
         {
             result.vertices.push_back(slice.vertices[unshared_vertices[j]]);
             Poly::Segment connection;
-            connection.p1 = unshared_vertices[j - (i + 1) * unshared_vertices.size()];
-            connection.p2 = unshared_vertices[j];
+            connection.p2 = new_vertices_pos + j;
+            if (i == 0)
+                connection.p1 = unshared_vertices[j];
+            else
+                connection.p1 = previous_vertices_pos + j;
             result.segments.push_back(connection);
         }
         previous_slice = slice;
     }
-    for (int i = 0; i < unshared_vertices.size(); i++)
+    // Makes the connection of the final slice with the first one
+    if (slices > 2)
     {
-        
-    }
-    return result;
-
-    std::vector<Poly::Face> faces;
-    std::vector<size_t> visited_segments{0};
-    std::vector<std::vector<size_t>> paths{{0}};
-    // Breadth-First Search for Identifying the
-    // While hasn't visited all segments
-    while (visited_segments.size() != result.segments.size())
-    {
-        // For Each Path
-        printf("Amount visited: %i\n", visited_segments.size());
-        for (int i = 0; i < paths.size(); i++)
+        for (int i = 0; i < unshared_vertices.size(); i++)
         {
-            // printf("Searching Paths\n");
-            // For Each Segment
-            for (int j = 0; j < result.segments.size(); j++)
+            Poly::Segment connection;
+            connection.p2 = result.vertices.size() - 1 - i;
+            connection.p1 = unshared_vertices[unshared_vertices.size() - 1 - i];
+            result.segments.push_back(connection);
+        }
+    }
+
+    bool reached_final_vertex = false;
+    size_t current_vertex = 0;
+    // Identify faces
+    while (!reached_final_vertex)
+    {
+        Poly::Face face;
+        bool is_shared = false;
+        for (int i = 0; i < shared_vertices.size(); i++)
+        {
+            if (shared_vertices[i] == current_vertex)
             {
-                // printf("Searching Segments\n");
-                Poly::Segment last_segment = result.segments[paths[i][paths[i].size() - 1]];
-                // Check if last path segment is connected to this segment
-                if (last_segment.p2 == result.segments[j].p1 || last_segment.p2 == result.segments[j].p2 || last_segment.p1 == result.segments[j].p1 || last_segment.p1 == result.segments[j].p2)
+                is_shared = true;
+                break;
+            }
+        }
+        for (int i = 0; i < result.segments.size(); i++)
+        {
+            if (result.segments[i].p1 == current_vertex && result.segments[i].p2 == current_vertex + slice.vertices.size())
+            {
+                face.segments.push_back(i);
+                current_vertex += slice.vertices.size();
+                break;
+            }
+        }
+        bool next_shared = false;
+        for (int i = 0; i < result.segments.size(); i++)
+        {
+            if (result.segments[i].p1 == current_vertex && result.segments[i].p2 == current_vertex - 2)
+            {
+                face.segments.push_back(i);
+                current_vertex -= 2;
+                next_shared = true;
+                break;
+            }
+        }
+        if (!next_shared)
+        {
+            for (int i = 0; i < result.segments.size(); i++)
+            {
+                if (result.segments[i].p1 == current_vertex && result.segments[i].p2 == current_vertex - 1)
                 {
-                    // Checks if this segment has been visited already
-                    bool already_visited = false;
-                    for (int k = 0; k < visited_segments.size(); k++)
-                    {
-                        if (j == visited_segments[k])
-                        {
-                            already_visited = true;
-                            break;
-                        }
-                    }
-                    if (!already_visited)
-                    {
-                        std::vector<size_t> new_path = paths[i];
-                        visited_segments.push_back(j);
-                        new_path.push_back(j);
-                        paths.push_back(new_path);
-                        // Checks if the path is circular
-                        if (result.segments[new_path[new_path.size() - 1]].p2 == result.segments[new_path[0]].p1 || result.segments[new_path[new_path.size() - 1]].p2 == result.segments[new_path[0]].p2 || result.segments[new_path[new_path.size() - 1]].p1 == result.segments[new_path[0]].p1 || result.segments[new_path[new_path.size() - 1]].p1 == result.segments[new_path[0]].p2)
-                        {
-                            Poly::Face face;
-                            face.segments = new_path;
-                            bool has_face_already = false;
-                            for (int l = 0; l < result.faces.size(); l++)
-                            {
-                                if (face == result.faces[l])
-                                    has_face_already = true;
-                            }
-                            if (!has_face_already)
-                                result.faces.push_back(face);
-                        }
-                    }
+                    face.segments.push_back(i);
+                    current_vertex -= 1;
+                    break;
+                }
+            }
+            for (int i = 0; i < result.segments.size(); i++)
+            {
+                if (result.segments[i].p1 == current_vertex && result.segments[i].p2 == current_vertex - 3)
+                {
+                    face.segments.push_back(i);
+                    current_vertex -= 3;
+                    break;
                 }
             }
         }
+        else
+        {
+            for (int i = 0; i < result.segments.size(); i++)
+            {
+                if (result.segments[i].p1 == current_vertex && result.segments[i].p2 == current_vertex + 1)
+                {
+                    face.segments.push_back(i);
+                    current_vertex += 1;
+                    break;
+                }
+            }
+        }
+        if (current_vertex == slice.vertices.size())
+            result.faces.push_back(face);
     }
 
     return result;

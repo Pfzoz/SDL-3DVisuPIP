@@ -19,13 +19,16 @@ bool Poly::operator==(const Poly::Face &lhs, const Poly::Face &rhs)
     return true;
 }
 
+// Private Methods
+
 // Constructors
 Poly::Polyhedron::Polyhedron(){};
 
-Poly::Polyhedron::Polyhedron(const std::vector<Segment> segments, const std::vector<Eigen::Vector3d> vertices)
+Poly::Polyhedron::Polyhedron(const std::vector<Segment> segments, const std::vector<Eigen::Vector3d> vertices, std::vector<Face> faces)
 {
     this->vertices = vertices;
     this->segments = segments;
+    this->faces = faces;
 }
 
 Poly::Polyhedron::Polyhedron(const Polyhedron &other)
@@ -38,6 +41,11 @@ Poly::Polyhedron::Polyhedron(const Polyhedron &other)
 Eigen::Vector3d Poly::Polyhedron::get_vertex(size_t index)
 {
     return this->vertices[index];
+}
+
+Poly::Segment Poly::Polyhedron::get_segment(size_t index)
+{
+    return this->segments[index];
 }
 
 Eigen::MatrixXd Poly::Polyhedron::get_matrix()

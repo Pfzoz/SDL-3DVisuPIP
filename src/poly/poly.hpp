@@ -10,6 +10,7 @@ namespace Poly
     struct Segment
     {
         size_t p1, p2;
+        size_t successor = -1, predecessor = -1;
     };
 
     struct Face
@@ -22,6 +23,7 @@ namespace Poly
 
     class Polyhedron
     {
+    private:
     public:
         std::vector<Eigen::Vector3d> vertices;
         std::vector<Segment> segments;
@@ -29,11 +31,12 @@ namespace Poly
 
         // Constructors
         Polyhedron();
-        Polyhedron(const std::vector<Segment> segments, const std::vector<Eigen::Vector3d> vertices);
+        Polyhedron(const std::vector<Segment> segments, const std::vector<Eigen::Vector3d> vertices, const std::vector<Face> faces);
         Polyhedron(const Polyhedron& other);
 
         // Getters
         Eigen::Vector3d get_vertex(size_t index);
+        Poly::Segment get_segment(size_t index);
         Eigen::MatrixXd get_matrix();
         Eigen::MatrixXd get_hmatrix();
         Eigen::Vector3d get_center();

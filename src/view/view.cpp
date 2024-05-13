@@ -101,10 +101,21 @@ void View::draw_generatrix_menu()
             printf("Segments total: %i\n", wireframe.segments.size());
             // for (int i = 0; i < wireframe.segments.size(); i++)
             // {
-            //     printf("Segment %i: %f\n", i);
-            //     printf("%f %f %f\n", wireframe.get_vertex(wireframe.segments[i].p1).x(), wireframe.get_vertex(wireframe.segments[i].p1).y(), wireframe.get_vertex(wireframe.segments[i].p1).z());
-            //     printf("%f %f %f\n", wireframe.get_vertex(wireframe.segments[i].p2).x(), wireframe.get_vertex(wireframe.segments[i].p2).y(), wireframe.get_vertex(wireframe.segments[i].p2).z());
+            //     printf("Segment %i: %i\n", i);
+            //     printf("(%f, %f, %f),", wireframe.get_vertex(wireframe.segments[i].p1).x(), wireframe.get_vertex(wireframe.segments[i].p1).y(), wireframe.get_vertex(wireframe.segments[i].p1).z());
+            //     printf("(%f, %f, %f)\n", wireframe.get_vertex(wireframe.segments[i].p2).x(), wireframe.get_vertex(wireframe.segments[i].p2).y(), wireframe.get_vertex(wireframe.segments[i].p2).z());
             // }
+            for (int i = 0; i < wireframe.faces.size(); i++)
+            {
+                printf("Face %i\n", i);
+                for (int j = 0; j < wireframe.faces[i].segments.size(); j++)
+                {   
+                    size_t segment = wireframe.faces[i].segments[j];
+                    printf("Segment %i\n", j);
+                    printf("(%f, %f, %f),", wireframe.get_vertex(wireframe.get_segment(segment).p1).x(), wireframe.get_vertex(wireframe.get_segment(segment).p1).y(), wireframe.get_vertex(wireframe.get_segment(segment).p1).z());
+                    printf("(%f, %f, %f)\n", wireframe.get_vertex(wireframe.get_segment(segment).p2).x(), wireframe.get_vertex(wireframe.get_segment(segment).p2).y(), wireframe.get_vertex(wireframe.get_segment(segment).p2).z());
+                }
+            }
             print_matrix(wireframe.get_matrix());
         }
         if (ImGui::Button("Clear Points", {ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 1.25f}))
@@ -137,10 +148,17 @@ void View::draw(SDL_Renderer *renderer)
 
 void View::drag_point(int mouse_x, int mouse_y)
 {
-    if (mouse_x >= 0 && mouse_x <= this->canvas.geometry.w)
-        this->dragging_point->x = (float)mouse_x / (float)this->canvas.geometry.w;
-    if (mouse_y >= 0 + this->canvas.geometry.y && mouse_y <= this->canvas.geometry.h + this->canvas.geometry.y)
-        this->dragging_point->y = (float)mouse_y / (float)this->canvas.geometry.h;
+    ImGui::Begin("Point Position", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+    ImGui::SetWindowPos({0, this->screen_height - ImGui::GetWindowSize().y});
+    ImGui::Text("X: %f", this->dragging_point->x );
+    ImGui::Text("Y: %f", this->dragging_point->y );
+    ImGui::SetWindowSize({ImGui::CalcTextSize("Point Position").x, ImGui::GetWindowSize().y});
+    ImGui::End();
+    SDL_FPoint normalized_point = this->canvas.normalize(mouse_x, mouse_y);
+    if ((mouse_x - this->canvas.geometry.x) >= 0 && mouse_x <= this->canvas.geometry.w)
+        this->dragging_point->x = normalized_point.x;
+    if ((mouse_y - this->canvas.geometry.y) >= 0 && (mouse_y - this->canvas.geometry.y) <= this->canvas.geometry.h)
+        this->dragging_point->y = normalized_point.y;
 }
 
 // Events
@@ -163,10 +181,9 @@ void View::generatrix_mouse_left_down(int x, int y)
 {
     for (int i = 0; i < this->canvas.points.size(); i++)
     {
-        int point_x = this->canvas.points[i].x * this->canvas.geometry.w;
-        int point_y = this->canvas.points[i].y * this->canvas.geometry.h;
-        if (point_x <= x + 7 && point_x >= x - 7 &&
-            point_y <= y + 7 && point_y >= y - 7)
+        SDL_FPoint touch_point = this->canvas.unnormalize(this->canvas.points[i].x, this->canvas.points[i].y);
+        if (touch_point.x <= x + 7 && touch_point.x >= x - 7 &&
+            touch_point.y <= y + 7 && touch_point.y >= y - 7)
         {
             this->dragging_point = &this->canvas.points[i];
             printf("Catched point!\n");

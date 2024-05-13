@@ -4,6 +4,8 @@
 #include <SDL2/SDL.h>
 #include <vector>
 #include <poly.hpp>
+#include <utils.hpp>
+#include <Eigen/Core>
 
 namespace Pip
 {

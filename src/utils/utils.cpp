@@ -14,9 +14,10 @@ void print_matrix(Eigen::MatrixXd mat)
 
 void print_vector(Eigen::VectorXd vec)
 {
+    printf("(");
     for (int i = 0; i < vec.size(); i++)
     {
-        printf("%.6f\t", vec(i));
+        printf("%.6f,", vec(i));
     }
-    printf("\n");
+    printf(")\n");
 }

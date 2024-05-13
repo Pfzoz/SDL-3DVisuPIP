@@ -8,7 +8,6 @@
 class Canvas
 {
 private:
-
 public:
     double l_width = 1920, l_height = 1080;
     std::vector<SDL_FPoint> points;
@@ -22,6 +21,9 @@ public:
 
     void clear();
     void set_logical_size(int width, int height);
+
+    SDL_FPoint normalize(int x, int y);
+    SDL_FPoint unnormalize(float x, float y);
 
     Poly::Polyhedron get_wireframe(int slices_amount);
 };
