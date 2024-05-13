@@ -8,4 +8,5 @@ target_link_libraries(Pipeline
     PUBLIC
     Poly
     Utils
-    Eigen3::Eigen)
+    Eigen3::Eigen
+    SDL2::SDL2)
