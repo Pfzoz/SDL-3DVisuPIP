@@ -10,12 +10,18 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(SDL2)
 
 FetchContent_Declare(
-    eigen
+    Eigen
     GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-    GIT_TAG master
-    FIND_PACKAGE_ARGS NAMES Eigen3 REQUIRED
+    GIT_TAG 3.4.0
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
 )
-add_subdirectory(eigen)
+set(BUILD_TESTING OFF)
+set(EIGEN_BUILD_TESTING OFF)
+set(EIGEN_MPL2_ONLY ON)
+set(EIGEN_BUILD_PKGCONFIG OFF)
+set(EIGEN_BUILD_DOC OFF)
+FetchContent_MakeAvailable(Eigen)
 
 FetchContent_Declare(
   imgui

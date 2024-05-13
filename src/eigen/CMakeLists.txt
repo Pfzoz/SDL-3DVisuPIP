@@ -1,6 +1,5 @@
-FetchContent_GetProperties(eigen)
-if(NOT eigen_POPULATED)  
-  FetchContent_Populate(eigen)
+FetchContent_GetProperties(Eigen3)
+if(NOT Eigen3_POPULATED)  
+  FetchContent_Populate(Eigen3)
 endif()
 
-  add_subdirectory(${eigen_SOURCE_DIR} ${eigen_BINARY_DIR} EXCLUDE_FROM_ALL)
