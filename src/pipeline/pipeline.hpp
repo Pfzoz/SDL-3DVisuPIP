@@ -1,7 +1,7 @@
 #ifndef PIPELINE_H
 #define PIPELINE_H
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <vector>
 #include <poly.hpp>
 #include <utils.hpp>
