@@ -2,7 +2,7 @@
 #define UTILS_H
 
 #include <iostream>
-#include <eigen3/Eigen/Core>
+#include <Eigen/Core>
 
 void print_matrix(Eigen::MatrixXd mat);
 
