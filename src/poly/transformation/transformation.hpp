@@ -1,7 +1,7 @@
 #ifndef TRANSFORMATIONS_H
 #define TRANSFORMATIONS_H
 
-#include <eigen3/Eigen/Core>
+#include <Eigen/Core>
 
 Eigen::Matrix4d x_rotation_matrix3d(double angle);
 

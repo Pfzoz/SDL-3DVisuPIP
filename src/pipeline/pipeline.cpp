@@ -105,76 +105,90 @@ Poly::Polyhedron Pip::wireframe(std::vector<SDL_FPoint> generatrix_points, int s
         }
     }
 
-    bool reached_final_vertex = false;
+    bool reached_final_slice = false;
+    size_t current_slice = 0;
     size_t current_vertex = 0;
     // Identify faces
-    while (!reached_final_vertex)
+    while (!reached_final_slice)
     {
         Poly::Face face;
-        bool is_shared = false;
-        for (int i = 0; i < shared_vertices.size(); i++)
+        size_t unshared_index = 0;
+        size_t next_slice_pos = slice.vertices.size() + current_slice * unshared_vertices.size();
+        size_t unshared_range = next_slice_pos + unshared_vertices.size() - 1;
+        size_t unshared_pos;
+        bool traveled = false;
+        // Go to a 'Connnecting Slice' vertex
+        size_t segment = -1;
+        size_t best_index = 0;
+        for (; unshared_index < unshared_vertices.size(); unshared_index++)
         {
-            if (shared_vertices[i] == current_vertex)
+            unshared_pos = next_slice_pos + unshared_index;
+            for (size_t i = 0; i < result.segments.size(); i++)
             {
-                is_shared = true;
-                break;
-            }
-        }
-        for (int i = 0; i < result.segments.size(); i++)
-        {
-            if (result.segments[i].p1 == current_vertex && result.segments[i].p2 == current_vertex + slice.vertices.size())
-            {
-                face.segments.push_back(i);
-                current_vertex += slice.vertices.size();
-                break;
-            }
-        }
-        bool next_shared = false;
-        for (int i = 0; i < result.segments.size(); i++)
-        {
-            if (result.segments[i].p1 == current_vertex && result.segments[i].p2 == current_vertex - 2)
-            {
-                face.segments.push_back(i);
-                current_vertex -= 2;
-                next_shared = true;
-                break;
-            }
-        }
-        if (!next_shared)
-        {
-            for (int i = 0; i < result.segments.size(); i++)
-            {
-                if (result.segments[i].p1 == current_vertex && result.segments[i].p2 == current_vertex - 1)
+                if ((result.segments[i].p1 == current_vertex && result.segments[i].p2 == unshared_pos)
+                    || (result.segments[i].p1 == unshared_pos && result.segments[i].p2 == current_vertex))
                 {
-                    face.segments.push_back(i);
-                    current_vertex -= 1;
-                    break;
+                    segment = i;
+                    traveled = true;
+                    best_index = unshared_index;
                 }
             }
-            for (int i = 0; i < result.segments.size(); i++)
-            {
-                if (result.segments[i].p1 == current_vertex && result.segments[i].p2 == current_vertex - 3)
-                {
-                    face.segments.push_back(i);
-                    current_vertex -= 3;
-                    break;
-                }
-            }
+        }
+        unshared_pos = next_slice_pos + best_index;
+        printf("Unshared pos: %i\n", unshared_pos); 
+
+        // Likely two shared in sequence
+        if (!traveled)
+        {
+            printf("Didn't travel\n");
+            continue;
         }
         else
+            face.segments.push_back(segment);
+        // Always returns to starting vertex + 1
+        current_vertex++;
+        // If not shared will go to connecting slice pos + 1
+        unshared_pos++;
+        traveled = false;
+        for (size_t i = 0; i < result.segments.size(); i++)
         {
-            for (int i = 0; i < result.segments.size(); i++)
+            if ((result.segments[i].p1 == unshared_pos && result.segments[i].p2 == unshared_pos - 1)
+                || (result.segments[i].p1 == unshared_pos - 1 && result.segments[i].p2 == unshared_pos))
             {
-                if (result.segments[i].p1 == current_vertex && result.segments[i].p2 == current_vertex + 1)
-                {
-                    face.segments.push_back(i);
-                    current_vertex += 1;
-                    break;
-                }
+                face.segments.push_back(i);
+                traveled = true;
+                break;
             }
         }
-        if (current_vertex == slice.vertices.size())
-            result.faces.push_back(face);
+        if (!traveled)
+            unshared_pos--;
+        // Go to 'Starting Slice' vertex
+        for (size_t i = 0; i < result.segments.size(); i++)
+        {
+            if ((result.segments[i].p1 == unshared_pos && result.segments[i].p2 == current_vertex)
+                || (result.segments[i].p1 == current_vertex && result.segments[i].p2 == unshared_pos))
+            {
+                face.segments.push_back(i);
+                break;
+            }
+        }
+        // Find the segment between first and end vertex
+        for (size_t i = 0; i < result.segments.size(); i++)
+        {
+            if ((result.segments[i].p1 == current_vertex && result.segments[i].p2 == current_vertex -1)
+                || (result.segments[i].p1 == current_vertex -1 && result.segments[i].p2 == current_vertex))
+            {
+                face.segments.push_back(i);
+                break;
+            }
+        }
+        if (current_vertex == result.vertices.size() - 1)
+        {
+            printf("Current vertex: %i Current slice: %i\n", current_vertex, current_slice);
+            current_slice++;
+        }
+        if (current_slice == slices - 1)
+            reached_final_slice = true;
     }
 
     return result;
