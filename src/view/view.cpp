@@ -95,29 +95,10 @@ void View::draw_generatrix_menu()
         ImGui::InputInt("Slices", &this->wireframe_slices_amount);
         if (this->wireframe_slices_amount < 1)
             this->wireframe_slices_amount = 1;
+        
         if (ImGui::Button("Create Wireframe (Send to 3D)", {ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 1.25f}))
         {
             Poly::Polyhedron wireframe = canvas.get_wireframe(this->wireframe_slices_amount);
-            // printf("Segments total: %i\n", wireframe.segments.size());
-            // for (int i = 0; i < wireframe.segments.size(); i++)
-            // {
-            //     printf("Segment %i: %i\n", i);
-            //     printf("(%f, %f, %f),", wireframe.get_vertex(wireframe.segments[i].p1).x(), wireframe.get_vertex(wireframe.segments[i].p1).y(), wireframe.get_vertex(wireframe.segments[i].p1).z());
-            //     printf("(%f, %f, %f)\n", wireframe.get_vertex(wireframe.segments[i].p2).x(), wireframe.get_vertex(wireframe.segments[i].p2).y(), wireframe.get_vertex(wireframe.segments[i].p2).z());
-            // }
-            for (int i = 0; i < wireframe.faces.size(); i++)
-            {
-                printf("Face %i\n", i);
-                for (int j = 0; j < wireframe.faces[i].segments.size(); j++)
-                {   
-                    size_t segment = wireframe.faces[i].segments[j];
-                    printf("Segment(", j);
-                    printf("(%f, %f, %f),", wireframe.get_vertex(wireframe.get_segment(segment).p1).x(), wireframe.get_vertex(wireframe.get_segment(segment).p1).y(), wireframe.get_vertex(wireframe.get_segment(segment).p1).z());
-                    printf("(%f, %f, %f))\n", wireframe.get_vertex(wireframe.get_segment(segment).p2).x(), wireframe.get_vertex(wireframe.get_segment(segment).p2).y(), wireframe.get_vertex(wireframe.get_segment(segment).p2).z());
-
-                }
-            }
-            print_matrix(wireframe.get_matrix());
         }
         if (ImGui::Button("Clear Points", {ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 1.25f}))
             canvas.clear();

@@ -106,7 +106,6 @@ void identify_internal_faces(Poly::Polyhedron &poly, const Poly::Polyhedron &sli
                 {
                     if ((poly.segments[i].p1 == current_vertex && poly.segments[i].p2 == land_b[current_b]) || (poly.segments[i].p1 == land_b[current_b] && poly.segments[i].p2 == current_vertex))
                     {
-                        printf("Is shared, went B\n");
                         face.segments.push_back(i);
                         break;
                     }
@@ -119,7 +118,6 @@ void identify_internal_faces(Poly::Polyhedron &poly, const Poly::Polyhedron &sli
                 {
                     if ((poly.segments[i].p1 == land_a[current_a] && poly.segments[i].p2 == land_b[current_b]) || (poly.segments[i].p1 == land_b[current_b] && poly.segments[i].p2 == land_a[current_a]))
                     {
-                        printf("Is not shared, went B\n");
                         face.segments.push_back(i);
                         current_a++;
                         current_b++;
@@ -132,19 +130,18 @@ void identify_internal_faces(Poly::Polyhedron &poly, const Poly::Polyhedron &sli
                 {
                     if ((poly.segments[i].p1 == land_b[current_b - 1] && poly.segments[i].p2 == land_b[current_b]) || (poly.segments[i].p1 == land_b[current_b] && poly.segments[i].p2 == land_b[current_b - 1]))
                     {
-                        printf("Went B\n");
                         face.segments.push_back(i);
                         traveled = true;
                         break;
                     }
                 }
+                // Go To Bridge
                 if (!traveled)
                 {
                     for (size_t i = 0; i < poly.segments.size(); i++)
                     {
                         if ((poly.segments[i].p1 == land_b[current_b - 1] && poly.segments[i].p2 == shared_vertices[current_bridge]) || (poly.segments[i].p1 == shared_vertices[current_bridge] && poly.segments[i].p2 == land_b[current_b - 1]))
                         {
-                            printf("Went Bridge\n");
                             face.segments.push_back(i);
                             current_a--;
                             bridge_travel = true;
@@ -160,7 +157,6 @@ void identify_internal_faces(Poly::Polyhedron &poly, const Poly::Polyhedron &sli
                 {
                     if ((poly.segments[i].p1 == land_a[current_a] && poly.segments[i].p2 == land_b[current_b]) || (poly.segments[i].p1 == land_b[current_b] && poly.segments[i].p2 == land_a[current_a]))
                     {
-                        printf("Went A\n");
                         face.segments.push_back(i);
                         break;
                     }
@@ -173,7 +169,6 @@ void identify_internal_faces(Poly::Polyhedron &poly, const Poly::Polyhedron &sli
                 {
                     if ((poly.segments[i].p1 == land_a[current_a] && poly.segments[i].p2 == shared_vertices[current_bridge - 1]) || (poly.segments[i].p1 == shared_vertices[current_bridge - 1] && poly.segments[i].p2 == land_a[current_a]))
                     {
-                        printf("Went Origin\n");
                         face.segments.push_back(i);
                         on_origin = true;
                         break;
@@ -190,7 +185,6 @@ void identify_internal_faces(Poly::Polyhedron &poly, const Poly::Polyhedron &sli
                     {
                         if ((poly.segments[i].p1 == land_a[current_a] && poly.segments[i].p2 == land_a[current_a - 1]) || (poly.segments[i].p1 == land_a[current_a - 1] && poly.segments[i].p2 == land_a[current_a]))
                         {
-                            printf("Went Origin\n");
                             face.segments.push_back(i);
                             break;
                         }
@@ -202,7 +196,6 @@ void identify_internal_faces(Poly::Polyhedron &poly, const Poly::Polyhedron &sli
                     {
                         if ((poly.segments[i].p1 == land_a[current_a] && poly.segments[i].p2 == current_vertex) || (poly.segments[i].p1 == current_vertex && poly.segments[i].p2 == land_a[current_a]))
                         {
-                            printf("Went Origin Current Vertex\n");
                             face.segments.push_back(i);
                             break;
                         }
@@ -342,7 +335,6 @@ Poly::Polyhedron Pip::wireframe(std::vector<SDL_FPoint> generatrix_points, int s
     }
 
     identify_internal_faces(result, slice, slices, unshared_vertices, shared_vertices, lands_map);
-
     identify_external_faces(result, slice, slices, shared_vertices, lands_map);
 
     return result;

@@ -64,7 +64,6 @@ Poly::Polyhedron Canvas::get_wireframe(int slices_amount)
         SDL_FPoint transformed_point;
         transformed_point.x = this->points[i].x * (float)this->l_width;
         transformed_point.y = (1 - this->points[i].y) * (float)this->l_height;
-        printf("X: %f, Y: %f\n", transformed_point.x, transformed_point.y);
         transformed_points.push_back(transformed_point);
     }
     return Pip::wireframe(transformed_points, slices_amount);
