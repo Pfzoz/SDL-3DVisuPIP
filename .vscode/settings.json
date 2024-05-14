@@ -81,5 +81,6 @@
         "valarray": "cpp",
         "variant": "cpp"
     },
-    "cmake.sourceDirectory": "/home/pedrozoz/Repositories/University/cg/sdl-3d-pipeline"
+    "cmake.sourceDirectory": "/home/pedrozoz/Repositories/University/cg/sdl-3d-pipeline",
+    "cmake.configureOnOpen": true
 }

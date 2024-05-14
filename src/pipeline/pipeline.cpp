@@ -105,91 +105,242 @@ Poly::Polyhedron Pip::wireframe(std::vector<SDL_FPoint> generatrix_points, int s
         }
     }
 
-    bool reached_final_slice = false;
+    // shared_vertices = bridges
+    std::map<size_t, std::vector<size_t>> lands_map;
+    // Use map to alternate between Land A and Land B
+    std::vector<size_t> first_land_vertices;
+    for (size_t i = 0; i < unshared_vertices.size(); i++)
+        first_land_vertices.push_back(unshared_vertices[i]);
+    lands_map[0] = first_land_vertices;
+    for (int i = 1; i < slices; i++)
+    {
+        std::vector<size_t> vertices;
+        size_t unshared_pos = 0;
+        unshared_pos += slice.vertices.size();
+        if (i > 1)
+            unshared_pos += (i - 1) * unshared_vertices.size();
+        for (int j = 0; j < unshared_vertices.size(); j++)
+            vertices.push_back(unshared_pos + j);
+        lands_map[i] = vertices;
+    }
     size_t current_slice = 0;
-    size_t current_vertex = 0;
     // Identify faces
-    while (!reached_final_slice)
+    while (current_slice != slices)
+    {
+        std::vector<size_t> land_a = lands_map[current_slice];
+        std::vector<size_t> land_b;
+        if (current_slice != slices - 1)
+            land_b = lands_map[current_slice + 1];
+        else
+            land_b = lands_map[0];
+        printf("Land A: ");
+        for (size_t v : land_a)
+        {
+            printf("%i ", v);
+        }
+        printf("\n");
+        printf("Land B: ");
+        for (size_t v : land_b)
+        {
+            printf("%i ", v);
+        }
+        printf("\n");
+        size_t current_a = 0, current_b = 0, current_bridge = 0;
+        size_t current_vertex = 0;
+        while (current_vertex != slice.vertices.size() - 1)
+        {
+            Poly::Face face;
+            bool is_shared = std::find(shared_vertices.begin(), shared_vertices.end(), current_vertex) != shared_vertices.end();
+            bool bridge_travel = false, on_origin = false;
+            // Shared Vertex, Go to Land B, add {Shared Vertex, Land B}
+            if (is_shared)
+            {
+                printf("Is shared\n");
+                current_bridge++;
+                for (size_t i = 0; i < result.segments.size(); i++)
+                {
+                    if ((result.segments[i].p1 == current_vertex && result.segments[i].p2 == land_b[current_b]) || (result.segments[i].p1 == land_b[current_b] && result.segments[i].p2 == current_vertex))
+                    {
+                        printf("Went B\n");
+                        face.segments.push_back(i);
+                        break;
+                    }
+                }
+            }
+            // Unshared Vertex, Go to Land B, add {Land A, Land B}
+            else
+            {
+                printf("Is not shared\n");
+
+                for (size_t i = 0; i < result.segments.size(); i++)
+                {
+                    if ((result.segments[i].p1 == land_a[current_a] && result.segments[i].p2 == land_b[current_b]) || (result.segments[i].p1 == land_b[current_b] && result.segments[i].p2 == land_a[current_a]))
+                    {
+                        printf("Went B\n");
+                        face.segments.push_back(i);
+                        current_a++;
+                        current_b++;
+                        break;
+                    }
+                }
+                // Try Land B, else go to Bridge
+                bool traveled = false;
+                for (size_t i = 0; i < result.segments.size(); i++)
+                {
+                    if ((result.segments[i].p1 == land_b[current_b - 1] && result.segments[i].p2 == land_b[current_b]) || (result.segments[i].p1 == land_b[current_b] && result.segments[i].p2 == land_b[current_b - 1]))
+                    {
+                        printf("Went B\n");
+                        face.segments.push_back(i);
+                        traveled = true;
+                        break;
+                    }
+                }
+                if (!traveled)
+                {
+                    for (size_t i = 0; i < result.segments.size(); i++)
+                    {
+                        if ((result.segments[i].p1 == land_b[current_b - 1] && result.segments[i].p2 == shared_vertices[current_bridge]) || (result.segments[i].p1 == shared_vertices[current_bridge] && result.segments[i].p2 == land_b[current_b - 1]))
+                        {
+                            printf("Went Bridge\n");
+                            face.segments.push_back(i);
+                            current_a--;
+                            bridge_travel = true;
+                            current_bridge++;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!bridge_travel)
+            {
+                // Go back to Land A, add {Land B, Land A}
+                for (size_t i = 0; i < result.segments.size(); i++)
+                {
+                    if ((result.segments[i].p1 == land_a[current_a] && result.segments[i].p2 == land_b[current_b]) || (result.segments[i].p1 == land_b[current_b] && result.segments[i].p2 == land_a[current_a]))
+                    {
+                        printf("Went A\n");
+                        face.segments.push_back(i);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                // Go back to origin, {Bridge, Origin}
+                for (size_t i = 0; i < result.segments.size(); i++)
+                {
+                    if ((result.segments[i].p1 == land_a[current_a] && result.segments[i].p2 == shared_vertices[current_bridge - 1]) || (result.segments[i].p1 == shared_vertices[current_bridge - 1] && result.segments[i].p2 == land_a[current_a]))
+                    {
+                        printf("Went Origin\n");
+                        face.segments.push_back(i);
+                        on_origin = true;
+                        break;
+                    }
+                }
+            }
+            // Check if already on origin
+            if (!on_origin)
+            {
+                // Close, Add {Land A, Origin}
+                if (!is_shared) // Origin = Current a - 1
+                {
+                    for (size_t i = 0; i < result.segments.size(); i++)
+                    {
+                        if ((result.segments[i].p1 == land_a[current_a] && result.segments[i].p2 == land_a[current_a - 1]) || (result.segments[i].p1 == land_a[current_a - 1] && result.segments[i].p2 == land_a[current_a]))
+                        {
+                            printf("Went Origin\n");
+                            face.segments.push_back(i);
+                            break;
+                        }
+                    }
+                }
+                else // Origin = current_vertex
+                {
+                    for (size_t i = 0; i < result.segments.size(); i++)
+                    {
+                        if ((result.segments[i].p1 == land_a[current_a] && result.segments[i].p2 == current_vertex) || (result.segments[i].p1 == current_vertex && result.segments[i].p2 == land_a[current_a]))
+                        {
+                            printf("Went Origin\n");
+                            face.segments.push_back(i);
+                            break;
+                        }
+                    }
+                }
+            }
+            if (bridge_travel)
+                current_a++;
+            current_vertex++;
+            result.faces.push_back(face);
+        }
+        current_slice++;
+    }
+
+    // Create side Faces
+    // First Face
+    bool is_shared = false;
+    for (size_t i = 0; i < shared_vertices.size(); i++)
+    {
+        if (0 == shared_vertices[i])
+        {
+            is_shared = true;
+            break;
+        }
+    }
+    if (!is_shared)
     {
         Poly::Face face;
-        size_t unshared_index = 0;
-        size_t next_slice_pos = slice.vertices.size() + current_slice * unshared_vertices.size();
-        size_t unshared_range = next_slice_pos + unshared_vertices.size() - 1;
-        size_t unshared_pos;
-        bool traveled = false;
-        // Go to a 'Connnecting Slice' vertex
-        size_t segment = -1;
-        size_t best_index = 0;
-        for (; unshared_index < unshared_vertices.size(); unshared_index++)
+        for (size_t i = 0; i < slices; i++)
         {
-            unshared_pos = next_slice_pos + unshared_index;
-            for (size_t i = 0; i < result.segments.size(); i++)
+            size_t next_i;
+            if (i != slices - 1)
+                 next_i = i + 1;
+            else
+                 next_i = 0;
+            for (size_t j = 0; j < result.segments.size(); j++)
             {
-                if ((result.segments[i].p1 == current_vertex && result.segments[i].p2 == unshared_pos)
-                    || (result.segments[i].p1 == unshared_pos && result.segments[i].p2 == current_vertex))
+                if (result.segments[j].p1 == lands_map[i][0] && result.segments[j].p2 == lands_map[next_i][0]
+                    || result.segments[j].p1 == lands_map[next_i][0] && result.segments[j].p2 == lands_map[i][0])
                 {
-                    segment = i;
-                    traveled = true;
-                    best_index = unshared_index;
+                    face.segments.push_back(j);
+                    break;
                 }
             }
         }
-        unshared_pos = next_slice_pos + best_index;
-        printf("Unshared pos: %i\n", unshared_pos); 
-
-        // Likely two shared in sequence
-        if (!traveled)
-        {
-            printf("Didn't travel\n");
-            continue;
-        }
-        else
-            face.segments.push_back(segment);
-        // Always returns to starting vertex + 1
-        current_vertex++;
-        // If not shared will go to connecting slice pos + 1
-        unshared_pos++;
-        traveled = false;
-        for (size_t i = 0; i < result.segments.size(); i++)
-        {
-            if ((result.segments[i].p1 == unshared_pos && result.segments[i].p2 == unshared_pos - 1)
-                || (result.segments[i].p1 == unshared_pos - 1 && result.segments[i].p2 == unshared_pos))
-            {
-                face.segments.push_back(i);
-                traveled = true;
-                break;
-            }
-        }
-        if (!traveled)
-            unshared_pos--;
-        // Go to 'Starting Slice' vertex
-        for (size_t i = 0; i < result.segments.size(); i++)
-        {
-            if ((result.segments[i].p1 == unshared_pos && result.segments[i].p2 == current_vertex)
-                || (result.segments[i].p1 == current_vertex && result.segments[i].p2 == unshared_pos))
-            {
-                face.segments.push_back(i);
-                break;
-            }
-        }
-        // Find the segment between first and end vertex
-        for (size_t i = 0; i < result.segments.size(); i++)
-        {
-            if ((result.segments[i].p1 == current_vertex && result.segments[i].p2 == current_vertex -1)
-                || (result.segments[i].p1 == current_vertex -1 && result.segments[i].p2 == current_vertex))
-            {
-                face.segments.push_back(i);
-                break;
-            }
-        }
-        if (current_vertex == result.vertices.size() - 1)
-        {
-            printf("Current vertex: %i Current slice: %i\n", current_vertex, current_slice);
-            current_slice++;
-        }
-        if (current_slice == slices - 1)
-            reached_final_slice = true;
+        result.faces.push_back(face);
     }
-
+    // Second Face
+    is_shared = false;
+    size_t last_vertex = slice.vertices.size() - 1;
+    for (size_t i = 0; i < shared_vertices.size(); i++)
+    {
+        if (last_vertex == shared_vertices[i])
+        {
+            is_shared = true;
+            break;
+        }
+    }
+    if (!is_shared)
+    {
+        Poly::Face face;
+        size_t last_land = lands_map[0].size() - 1;
+        for (size_t i = 0; i < slices; i++)
+        {
+            size_t next_i;
+            if (i != slices - 1)
+                 next_i = i + 1;
+            else
+                 next_i = 0;
+            for (size_t j = 0; j < result.segments.size(); j++)
+            {
+                if (result.segments[j].p1 == lands_map[i][last_land] && result.segments[j].p2 == lands_map[next_i][last_land]
+                    || result.segments[j].p1 == lands_map[next_i][last_land] && result.segments[j].p2 == lands_map[i][last_land])
+                {
+                    face.segments.push_back(j);
+                    break;
+                }
+            }
+        }
+        result.faces.push_back(face);
+    }
     return result;
 }

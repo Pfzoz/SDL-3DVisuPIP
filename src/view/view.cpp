@@ -98,7 +98,7 @@ void View::draw_generatrix_menu()
         if (ImGui::Button("Create Wireframe (Send to 3D)", {ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 1.25f}))
         {
             Poly::Polyhedron wireframe = canvas.get_wireframe(this->wireframe_slices_amount);
-            printf("Segments total: %i\n", wireframe.segments.size());
+            // printf("Segments total: %i\n", wireframe.segments.size());
             // for (int i = 0; i < wireframe.segments.size(); i++)
             // {
             //     printf("Segment %i: %i\n", i);
@@ -111,9 +111,10 @@ void View::draw_generatrix_menu()
                 for (int j = 0; j < wireframe.faces[i].segments.size(); j++)
                 {   
                     size_t segment = wireframe.faces[i].segments[j];
-                    printf("Segment %i\n", j);
+                    printf("Segment(", j);
                     printf("(%f, %f, %f),", wireframe.get_vertex(wireframe.get_segment(segment).p1).x(), wireframe.get_vertex(wireframe.get_segment(segment).p1).y(), wireframe.get_vertex(wireframe.get_segment(segment).p1).z());
-                    printf("(%f, %f, %f)\n", wireframe.get_vertex(wireframe.get_segment(segment).p2).x(), wireframe.get_vertex(wireframe.get_segment(segment).p2).y(), wireframe.get_vertex(wireframe.get_segment(segment).p2).z());
+                    printf("(%f, %f, %f))\n", wireframe.get_vertex(wireframe.get_segment(segment).p2).x(), wireframe.get_vertex(wireframe.get_segment(segment).p2).y(), wireframe.get_vertex(wireframe.get_segment(segment).p2).z());
+
                 }
             }
             print_matrix(wireframe.get_matrix());
