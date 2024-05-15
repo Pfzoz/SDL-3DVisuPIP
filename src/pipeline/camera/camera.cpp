@@ -38,6 +38,21 @@ Eigen::Vector3d Camera::get_focal_point()
     return this->focal_point;
 }
 
+Eigen::Vector3d Camera::get_v()
+{
+    return this->v;
+}
+
+Eigen::Vector3d Camera::get_n()
+{
+    return this->n;
+}
+
+Eigen::Vector3d Camera::get_u()
+{
+    return this->u;
+}
+
 Eigen::Matrix4d Camera::get_src_matrix()
 {
     Eigen::Matrix4d src_matrix;

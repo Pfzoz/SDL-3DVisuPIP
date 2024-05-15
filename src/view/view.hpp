@@ -23,7 +23,7 @@ private:
     // U.I Flags and Control Vars
     const float menu_height = 50;
     bool menu_generatrix_open = true;
-    bool menu_camera_open = false;
+    bool menu_camera_open = true;
     bool logical_size_follow_screen = false;
 
     // Drawing Vars
@@ -35,6 +35,7 @@ private:
     int wireframe_slices_amount = 3;
     Canvas canvas;
     Viewport viewport;
+    Pip::Pipeline pipeline = Pip::Pipeline::get_pipeline();
 
     // Drawing - UI
     void draw_ui();

@@ -46,7 +46,6 @@ target_link_libraries(
     SDL3VisuPIP
     PUBLIC
     View
-    pipeline
     SDL2::SDL2
     imgui
 )

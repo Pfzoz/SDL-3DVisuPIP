@@ -10,6 +10,58 @@ Pip::Pipeline &Pip::Pipeline::get_pipeline()
     return instance;
 }
 
+// Setters
+void Pip::Pipeline::set_vrp(double x, double y, double z)
+{
+    this->camera.set_vrp({x, y, z});
+}
+
+void Pip::Pipeline::set_focal_point(double x, double y, double z)
+{
+    this->camera.set_focal_point({x, y, z});
+}
+
+// Getters
+void Pip::Pipeline::get_vrp(double *x, double *y, double *z)
+{
+    Eigen::Vector3d vrp = this->camera.get_vrp();
+    *x = vrp(0);
+    *y = vrp(1);
+    *z = vrp(2);
+}
+
+void Pip::Pipeline::get_focal_point(double *x, double *y, double *z)
+{
+    Eigen::Vector3d focal_point = this->camera.get_focal_point();
+    *x = focal_point(0);
+    *y = focal_point(1);
+    *z = focal_point(2);
+}
+
+void Pip::Pipeline::get_camera_view_direction(double *x, double *y, double *z)
+{
+    Eigen::Vector3d n = this->camera.get_n();
+    *x = n(0);
+    *y = n(1);
+    *z = n(2);
+}
+
+void Pip::Pipeline::get_camera_view_right(double *x, double *y, double *z)
+{
+    Eigen::Vector3d u = this->camera.get_u();
+    *x = u(0);
+    *y = u(1);
+    *z = u(2);
+}
+
+void Pip::Pipeline::get_camera_view_up(double *x, double *y, double *z)
+{
+    Eigen::Vector3d v = this->camera.get_v();
+    *x = v(0);
+    *y = v(1);
+    *z = v(2);
+}
+
 // Wireframe
 void rotate_slices(Poly::Polyhedron &poly, Poly::Polyhedron slice, int slices, std::vector<size_t> unshared_vertices)
 {

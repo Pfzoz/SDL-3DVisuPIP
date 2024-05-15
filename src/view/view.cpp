@@ -81,6 +81,11 @@ void View::draw_ui()
     {
         draw_camera_menu();
     }
+    if (this->logical_size_follow_screen)
+    {
+        canvas.l_width = this->screen_width;
+        canvas.l_height = this->screen_height;
+    }
 }
 
 void View::draw_generatrix_menu()
@@ -94,11 +99,6 @@ void View::draw_generatrix_menu()
         ImGui::Text("Logical Size (Min = 1)");
         ImGui::AlignTextToFramePadding();
         ImGui::Checkbox("Follow Screen Resolution", &this->logical_size_follow_screen);
-        if (this->logical_size_follow_screen)
-        {
-            canvas.l_width = this->screen_width;
-            canvas.l_height = this->screen_height;
-        }
         int previous_width = canvas.l_width, previous_height = canvas.l_height;
         ImGui::InputDouble("Width", &canvas.l_width);
         ImGui::InputDouble("Height", &canvas.l_height);
@@ -142,9 +142,50 @@ void View::draw_point_position()
 
 void View::draw_camera_menu()
 {
-    ImGui::Begin("Camera Options", &this->menu_camera_open, ImGuiWindowFlags_AlwaysAutoResize);
-    ImGui::SetWindowPos({0, menu_height}, ImGuiCond_FirstUseEver);
-    ImGui::End();
+    if (this->menu_camera_open)
+    {
+        ImGui::SetNextWindowSizeConstraints({ImGui::CalcTextSize("Camera Options").x, 0.0f}, {-1, -1});
+        ImGui::Begin("Camera Options", &this->menu_camera_open, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::SetWindowFontScale(1.4f);
+        ImGui::Text("VRP");
+        double x, y, z;
+        this->pipeline.get_vrp(&x, &y, &z);
+        double input_x = x, input_y = y, input_z = z;
+        double height_step = this->canvas.l_height / 100.0, height_fast_step = this->canvas.l_height / 10.0;
+        double width_step = this->canvas.l_width / 100.0, width_fast_step = this->canvas.l_width / 10.0;
+        ImGui::InputDouble("##SRCX", &input_x, width_step, width_fast_step, "%.6f...");
+        ImGui::InputDouble("##SRCY", &input_y, height_step, height_fast_step, "%.6f...");
+        ImGui::InputDouble("##SRCZ", &input_z, height_step, height_fast_step, "%.6f...");
+        if (x != input_x
+            || y != input_y
+            || z != input_z)
+        {
+            this->pipeline.set_vrp(input_x, input_y, input_z);
+        }
+        ImGui::Text("Focal Point");
+        this->pipeline.get_focal_point(&x, &y, &z);
+        double input_fx = x, input_fy = y, input_fz = z;
+        ImGui::InputDouble("##FPX", &input_fx, width_step, width_fast_step, "%.6f...");
+        ImGui::InputDouble("##FPY", &input_fy, height_step, height_fast_step, "%.6f...");
+        ImGui::InputDouble("##FPZ", &input_fz, height_step, height_fast_step, "%.6f...");
+        if (x != input_fx
+            || y != input_fy
+            || z != input_fz)
+        {
+            this->pipeline.set_focal_point(input_fx, input_fy, input_fz);
+        }
+        ImGui::Text("Camera Orientation");
+        this->pipeline.get_camera_view_up(&x, &y, &z);
+        ImGui::Text("v (View Up)");
+        ImGui::Text("X: %.6f Y: %.6f Z: %.6f", x, y, z);
+        this->pipeline.get_camera_view_right(&x, &y, &z);
+        ImGui::Text("u (View Side)");
+        ImGui::Text("X: %.6f Y: %.6f Z: %.6f", x, y, z);
+        this->pipeline.get_camera_view_direction(&x, &y, &z);
+        ImGui::Text("n (View Direction)");
+        ImGui::Text("X: %.6f Y: %.6f Z: %.6f", x, y, z);
+        ImGui::End();
+    }
 }
 
 // Drawing - Scenes

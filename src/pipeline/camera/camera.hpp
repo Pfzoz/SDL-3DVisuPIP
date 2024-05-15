@@ -11,6 +11,9 @@ public:
     // Getters
     Eigen::Vector3d get_vrp();
     Eigen::Vector3d get_focal_point();
+    Eigen::Vector3d get_v();
+    Eigen::Vector3d get_n();
+    Eigen::Vector3d get_u();
     Eigen::Matrix4d get_src_matrix();
 
     // Setters
