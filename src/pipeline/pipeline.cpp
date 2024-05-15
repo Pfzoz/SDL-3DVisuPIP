@@ -10,6 +10,7 @@ Pip::Pipeline &Pip::Pipeline::get_pipeline()
     return instance;
 }
 
+// Wireframe
 void rotate_slices(Poly::Polyhedron &poly, Poly::Polyhedron slice, int slices, std::vector<size_t> unshared_vertices)
 {
     std::map<size_t, size_t> unshared_map;

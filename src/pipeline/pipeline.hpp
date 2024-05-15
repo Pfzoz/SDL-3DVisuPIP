@@ -6,6 +6,7 @@
 #include <poly.hpp>
 #include <utils.hpp>
 #include <Eigen/Core>
+#include <camera.hpp>
 
 namespace Pip
 {
@@ -16,6 +17,9 @@ namespace Pip
     class Pipeline
     {
     public:
+        Poly::Polyhedron scene_objects;
+        Camera camera;
+
         static Pipeline &get_pipeline();
     private:
         Pipeline();

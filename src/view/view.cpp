@@ -14,7 +14,8 @@ View::View(SDL_Window *window, int screen_width, int screen_height)
     this->window = window;
     this->screen_width = screen_width;
     this->screen_height = screen_height;
-    this->canvas = Canvas(0, menu_height, screen_width, screen_height - menu_height);
+    this->canvas = Canvas(screen_width * 0.01, menu_height + screen_height * 0.01,
+                          screen_width - screen_width * 0.01, screen_height - menu_height - screen_height * 0.01);
     this->canvas.set_logical_size(screen_width, screen_height);
     this->viewport = Viewport(0, menu_height, screen_width, screen_height - menu_height);
 }
@@ -37,21 +38,29 @@ void View::draw_ui()
             {
                 scene_number = Scene::Generatrix;
                 SDL_SetWindowTitle(this->window, "SDL3DVisuPIP - Generatrix");
-                this->menu_generatrix_open = true;
             }
             if (ImGui::MenuItem("Viewport", nullptr, this->scene_number == Scene::Viewport))
             {
                 scene_number = Scene::Viewport;
                 SDL_SetWindowTitle(this->window, "SDL3DVisuPIP - Viewport");
-                this->menu_generatrix_open = false;
             }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Windows"))
         {
-            if (ImGui::MenuItem("Generatrix Panel", nullptr, this->menu_generatrix_open))
+            if (this->scene_number == Scene::Generatrix)
             {
-                this->menu_generatrix_open = !this->menu_generatrix_open;
+                if (ImGui::MenuItem("Generatrix Panel", nullptr, this->menu_generatrix_open))
+                {
+                    this->menu_generatrix_open = !this->menu_generatrix_open;
+                }
+            }
+            else
+            {
+                if (ImGui::MenuItem("Camera Panel", nullptr, this->menu_camera_open))
+                {
+                    this->menu_camera_open = !this->menu_camera_open;
+                }
             }
             ImGui::EndMenu();
         }
@@ -63,14 +72,22 @@ void View::draw_ui()
         ImGui::EndMenuBar();
     }
     ImGui::End();
-    draw_generatrix_menu();
+    if (this->scene_number == Scene::Generatrix)
+    {
+        draw_generatrix_menu();
+        draw_point_position();
+    }
+    else
+    {
+        draw_camera_menu();
+    }
 }
 
 void View::draw_generatrix_menu()
 {
     if (this->menu_generatrix_open)
     {
-        ImGui::Begin("Generatrix", &this->menu_generatrix_open, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Begin("Generatrix Options", &this->menu_generatrix_open, ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::SetWindowFontScale(1.4f);
         ImGui::SetWindowCollapsed(false, ImGuiCond_FirstUseEver);
         ImGui::SetWindowPos({0, menu_height}, ImGuiCond_FirstUseEver);
@@ -91,11 +108,10 @@ void View::draw_generatrix_menu()
             canvas.l_width = 1;
         if (!canvas.l_height)
             canvas.l_height = 1;
-        ImGui::Text("Amount of Slices For Revolution (Min = 1)");
+        ImGui::Text("Amount of Slices For Revolution (Min = 3)");
         ImGui::InputInt("Slices", &this->wireframe_slices_amount);
-        if (this->wireframe_slices_amount < 1)
-            this->wireframe_slices_amount = 1;
-        
+        if (this->wireframe_slices_amount < 3)
+            this->wireframe_slices_amount = 3;
         if (ImGui::Button("Create Wireframe (Send to 3D)", {ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 1.25f}))
         {
             Poly::Polyhedron wireframe = canvas.get_wireframe(this->wireframe_slices_amount);
@@ -104,6 +120,31 @@ void View::draw_generatrix_menu()
             canvas.clear();
         ImGui::End();
     }
+}
+
+void View::draw_point_position()
+{
+    if (this->dragging_point != NULL)
+    {
+        ImGui::Begin("Point Coordinates", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
+        ImGui::SetWindowFontScale(1.5f);
+        ImGui::Text("X: %f", this->dragging_point->x);
+        ImGui::Text("Y: %f", this->dragging_point->y);
+        float win_x, win_y = this->screen_height - ImGui::GetWindowSize().y;
+        if (this->dragging_point->x > 0.5f)
+            win_x = 0;
+        else
+            win_x = this->screen_width - ImGui::GetWindowSize().x;
+        ImGui::SetWindowPos({win_x, win_y});
+        ImGui::End();
+    }
+}
+
+void View::draw_camera_menu()
+{
+    ImGui::Begin("Camera Options", &this->menu_camera_open, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::SetWindowPos({0, menu_height}, ImGuiCond_FirstUseEver);
+    ImGui::End();
 }
 
 // Drawing - Scenes
@@ -130,16 +171,20 @@ void View::draw(SDL_Renderer *renderer)
 
 void View::drag_point(int mouse_x, int mouse_y)
 {
-    ImGui::Begin("Point Position", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
-    ImGui::SetWindowPos({0, this->screen_height - ImGui::GetWindowSize().y});
-    ImGui::Text("X: %f", this->dragging_point->x );
-    ImGui::Text("Y: %f", this->dragging_point->y );
-    ImGui::SetWindowSize({ImGui::CalcTextSize("Point Position").x, ImGui::GetWindowSize().y});
-    ImGui::End();
     SDL_FPoint normalized_point = this->canvas.normalize(mouse_x, mouse_y);
-    if ((mouse_x - this->canvas.geometry.x) >= 0 && mouse_x <= this->canvas.geometry.w)
+    mouse_y = mouse_y - this->canvas.geometry.y;
+    mouse_x = mouse_x - this->canvas.geometry.x;
+    if (mouse_x < 0)
+        this->dragging_point->x = 0;
+    else if (mouse_x > this->canvas.geometry.w)
+        this->dragging_point->x = 1;
+    else
         this->dragging_point->x = normalized_point.x;
-    if ((mouse_y - this->canvas.geometry.y) >= 0 && (mouse_y - this->canvas.geometry.y) <= this->canvas.geometry.h)
+    if (mouse_y < 0)
+        this->dragging_point->y = 0;
+    else if (mouse_y > this->canvas.geometry.h)
+        this->dragging_point->y = 1;
+    else
         this->dragging_point->y = normalized_point.y;
 }
 
@@ -148,9 +193,11 @@ void View::resize(float screen_width, float screen_height)
 {
     this->screen_width = screen_width;
     this->screen_height = screen_height;
-    this->canvas.geometry.y = menu_height;
-    this->canvas.geometry.h = screen_height - menu_height;
-    this->canvas.geometry.w = screen_width;
+    this->canvas.geometry = {
+        (int)(screen_width * 0.01) / 2,
+        (int)(menu_height + (screen_height * 0.01) / 2),
+        (int)(screen_width - (screen_width * 0.01)),
+        (int)(screen_height - menu_height - (screen_height * 0.01))};
 }
 
 // Generatrix Events
@@ -168,11 +215,12 @@ void View::generatrix_mouse_left_down(int x, int y)
             touch_point.y <= y + 7 && touch_point.y >= y - 7)
         {
             this->dragging_point = &this->canvas.points[i];
-            printf("Catched point!\n");
             break;
         }
     }
 }
+
+// Viewport Events
 
 // Event Logic Handling
 void View::handle_events(const SDL_Event *event)

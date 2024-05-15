@@ -94,6 +94,14 @@ Eigen::Vector3d Poly::Polyhedron::get_center()
     return Eigen::Vector3d((min_x + max_x) / 2, (min_y + max_y) / 2, (min_z + max_z) / 2);
 }
 
+// Setters
+
+void Poly::Polyhedron::move_to(Eigen::Vector3d pos)
+{
+    this->translate(pos.x() - this->get_center().x(), pos.y() - this->get_center().y(), pos.z() - this->get_center().z());
+}
+
+// Transformations
 void Poly::Polyhedron::rotate(float x, float y, float z)
 {
     Eigen::Matrix4d t_matrix = Eigen::Matrix4d::Identity();

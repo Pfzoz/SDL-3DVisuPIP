@@ -9,6 +9,7 @@
 #include <poly.hpp>
 #include <viewport.hpp>
 #include <canvas/canvas.hpp>
+#include <pipeline.hpp>
 
 enum class Scene
 {
@@ -22,6 +23,7 @@ private:
     // U.I Flags and Control Vars
     const float menu_height = 50;
     bool menu_generatrix_open = true;
+    bool menu_camera_open = false;
     bool logical_size_follow_screen = false;
 
     // Drawing Vars
@@ -37,6 +39,8 @@ private:
     // Drawing - UI
     void draw_ui();
     void draw_generatrix_menu();
+    void draw_point_position();
+    void draw_camera_menu();
 
     // Drawing - Screen
     void drag_point(int mouse_x, int mouse_y);

@@ -41,6 +41,9 @@ namespace Poly
         Eigen::MatrixXd get_hmatrix();
         Eigen::Vector3d get_center();
 
+        // Setters
+        void move_to(Eigen::Vector3d pos);
+
         // Transformations
         void rotate(float x = 0, float y = 0, float z = 0);
         void translate(float x = 0, float y = 0, float z = 0);
