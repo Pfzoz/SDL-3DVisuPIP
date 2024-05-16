@@ -49,6 +49,7 @@ namespace Poly
         void translate(float x = 0, float y = 0, float z = 0);
         void translate(Eigen::Vector3d v);
         void mirror(bool x, bool y, bool z);
+        void transform(Eigen::Matrix4d matrix);
     };
 
 }

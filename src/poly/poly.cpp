@@ -150,3 +150,11 @@ void Poly::Polyhedron::mirror(bool x, bool y, bool z)
             this->vertices[i].z() = -this->vertices[i].z();
     }
 }
+
+void Poly::Polyhedron::transform(Eigen::Matrix4d matrix)
+{
+    Eigen::MatrixXd hmatrix = this->get_hmatrix();
+    Eigen::MatrixXd result = matrix * hmatrix;
+    for (int i = 0; i < this->vertices.size(); i++)
+        this->vertices[i] = result.col(i).head(3);
+}

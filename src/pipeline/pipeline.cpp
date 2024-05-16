@@ -62,6 +62,56 @@ void Pip::Pipeline::get_camera_view_up(double *x, double *y, double *z)
     *z = v(2);
 }
 
+// Pipeline Main Flux
+
+void Pip::Pipeline::apply(SDL_Renderer *renderer, SDL_Texture *texture)
+{
+    SDL_SetRenderTarget(renderer, texture);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    Eigen::Matrix4d wv_matrix = this->window_to_viewport_matrix();
+    Eigen::Matrix4d projection_matrix;
+    switch (this->projection)
+    {
+    case Projection::PERSPECTIVE:
+        projection_matrix = this->perspective_matrix();
+        break;
+    case Projection::ORTHOGRAPHIC_X:
+        projection_matrix = this->ortographic_x_matrix();
+        break;
+    case Projection::ORTHOGRAPHIC_Y:
+        projection_matrix = this->ortographic_y_matrix();
+        break;
+    case Projection::ORTHOGRAPHIC_Z:
+        projection_matrix = this->ortographic_z_matrix();
+        break;
+    case Projection::PARALLEL:
+        projection_matrix = this->parallel_matrix();
+        break;
+    }
+    Eigen::Matrix4d src_matrix = this->camera.get_src_matrix();
+    Eigen::Matrix4d sru_srt_matrix = wv_matrix * projection_matrix * src_matrix;
+    std::vector<Poly::Polyhedron> polyhedra = this->scene_objects;
+    for (int i = 0; i < polyhedra.size(); i++)
+        polyhedra[i].transform(sru_srt_matrix);
+    if (this->shading == Shading::NO_SHADING)
+    {
+        for (int i = 0; i < polyhedra.size(); i++)
+        {
+            for (int j = 0; j < polyhedra[i].segments.size(); i++)
+            {
+                Eigen::Vector3d v1 = polyhedra[i].vertices[polyhedra[i].segments[j].p1];
+                Eigen::Vector3d v2 = polyhedra[i].vertices[polyhedra[i].segments[j].p2];
+                SDL_FPoint p1 = {v1.x(), v1.y()};
+                SDL_FPoint p2 = {v2.x(), v2.y()};
+                SDL_RenderDrawLineF(renderer, p1.x, p1.y, p2.x, p2.y);
+            }
+        }
+    }
+    SDL_SetRenderTarget(renderer, NULL);
+}
+
 // Wireframe
 void rotate_slices(Poly::Polyhedron &poly, Poly::Polyhedron slice, int slices, std::vector<size_t> unshared_vertices)
 {
