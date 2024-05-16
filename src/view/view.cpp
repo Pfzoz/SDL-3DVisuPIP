@@ -100,8 +100,8 @@ void View::draw_generatrix_menu()
         ImGui::AlignTextToFramePadding();
         ImGui::Checkbox("Follow Screen Resolution", &this->logical_size_follow_screen);
         int previous_width = canvas.l_width, previous_height = canvas.l_height;
-        ImGui::InputDouble("Width", &canvas.l_width);
-        ImGui::InputDouble("Height", &canvas.l_height);
+        ImGui::InputDouble("L-Width", &canvas.l_width);
+        ImGui::InputDouble("L-Height", &canvas.l_height);
         if (previous_width != canvas.l_width || previous_height != canvas.l_height)
             this->logical_size_follow_screen = false;
         if (!canvas.l_width)
@@ -147,6 +147,7 @@ void View::draw_camera_menu()
         ImGui::SetNextWindowSizeConstraints({ImGui::CalcTextSize("Camera Options").x, 0.0f}, {-1, -1});
         ImGui::Begin("Camera Options", &this->menu_camera_open, ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::SetWindowFontScale(1.4f);
+        ImGui::SetWindowPos({0, menu_height}, ImGuiCond_FirstUseEver);
         ImGui::Text("VRP");
         double x, y, z;
         this->pipeline.get_vrp(&x, &y, &z);
