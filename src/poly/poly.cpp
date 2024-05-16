@@ -156,8 +156,6 @@ void Poly::Polyhedron::transform(Eigen::Matrix4d matrix)
 {
     Eigen::MatrixXd hmatrix = this->get_hmatrix();
     Eigen::MatrixXd result = matrix * hmatrix;
-    printf("Result\n");
-    print_matrix(result);
     for (int i = 0; i < this->vertices.size(); i++)
     {
         this->vertices[i] = result.block<3, 1>(0, i).cast<double>();

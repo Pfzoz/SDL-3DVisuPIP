@@ -122,6 +122,12 @@ void View::draw_generatrix_menu()
             Poly::Polyhedron wireframe = canvas.get_wireframe(this->wireframe_slices_amount);
             // wireframe.print_faces();
             pipeline.add_object(wireframe);
+            object_names.clear();
+            for (int i = 0; i < pipeline.scene_objects.size(); i++)
+            {
+                std::string object_name = "Object " + std::to_string(i);
+                object_names.push_back(object_name);
+            }
         }
         if (ImGui::Button("Clear Points", {ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 1.25f}))
             canvas.clear();
@@ -201,13 +207,10 @@ void View::draw_objects_menu()
         ImGui::SetWindowFontScale(1.4f);
         ImGui::SetWindowPos({0, menu_height}, ImGuiCond_FirstUseEver);
         ImGui::Text("Selected Object");
-        std::vector<const char *> object_names;
-        for (int i = 0; i < pipeline.scene_objects.size(); i++)
-        {
-            std::string object_name = "Object " + std::to_string(i);
-            object_names.push_back(object_name.c_str());
-        }
-        ImGui::Combo("##OBJDROPDOWN", &this->selected_object, object_names.data(), object_names.size());
+        std::vector<const char *> object_names_c;
+        for (int i = 0; i < object_names.size(); i++)
+            object_names_c.push_back(object_names[i].c_str());
+        ImGui::Combo("##OBJDROPDOWN", &this->selected_object, object_names_c.data(), object_names.size());
         if (selected_object != -1)
         {
             ImGui::Text("Translate");
@@ -225,7 +228,7 @@ void View::draw_objects_menu()
             ImGui::InputDouble("##RX", &rx, 0.01, 0.01, "%.6f...");
             ImGui::InputDouble("##RY", &ry, 0.01, 0.01, "%.6f...");
             ImGui::InputDouble("##RZ", &rz, 0.01, 0.01, "%.6f...");
-            ImGui::Selectable("##ANIMATEROTATE", &rotation_animate, 0, {0, 0});
+            ImGui::Selectable("##ANIMATEROTATE", &rotation_animate, 0, {50, 0});
             ImGui::SameLine();
             ImGui::Text("Animate");
             double delta = SDL_GetTicks64() - last_time;
@@ -247,6 +250,7 @@ void View::draw_objects_menu()
             }
             else if (rotation_animate)
             {
+                printf("Here\n");
                 double x, y, z;
                 this->pipeline.get_object_center(selected_object, &x, &y, &z);
                 this->pipeline.translate_object(selected_object, -x, -y, -z);
@@ -257,6 +261,12 @@ void View::draw_objects_menu()
             {
                 this->pipeline.remove_object(selected_object);
                 this->selected_object = -1;
+                object_names.clear();
+                for (int i = 0; i < pipeline.scene_objects.size(); i++)
+                {
+                    std::string object_name = "Object " + std::to_string(i);
+                    object_names.push_back(object_name);
+                }
             }
         }
         ImGui::End();

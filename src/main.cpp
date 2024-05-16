@@ -22,7 +22,7 @@ bool init_SDL()
         printf("SDL_Error: %s\n", SDL_GetError());
         return false;
     }
-    renderer = SDL_CreateRenderer(main_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
+    renderer = SDL_CreateRenderer(main_window, -1, SDL_RENDERER_ACCELERATED);
     if (!renderer)
     {
         printf("Renderer could not be created.\n");

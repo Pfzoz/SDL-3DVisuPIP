@@ -4,7 +4,6 @@
 class Viewport
 {
 public:
-    SDL_Texture *texture = NULL;
     SDL_Rect geometry;
     Viewport();
     ~Viewport();

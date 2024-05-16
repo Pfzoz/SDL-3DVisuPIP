@@ -72,11 +72,11 @@ namespace Scene
         Eigen::Matrix4d get_projection_matrix();
 
         // Shading
-        void apply_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer, SDL_Texture *texture);
-        void apply_wireframe_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer, SDL_Texture *texture);
+        void apply_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer);
+        void apply_wireframe_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer);
 
         // Apply
-        void apply(SDL_Renderer *renderer, SDL_Texture *texture);
+        void render(SDL_Renderer *renderer);
 
         // Acquire Singleton
         static Pipeline &get_pipeline();

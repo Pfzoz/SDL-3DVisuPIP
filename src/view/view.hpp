@@ -32,6 +32,8 @@ private:
     bool menu_objects_open = false;
     bool logical_size_follow_screen = false;
     int selected_object = 0;
+    // Object Vars
+    std::vector<std::string> object_names;
     // Translation Vars
     double tx, ty, tz; 
     // Rotatation Vars

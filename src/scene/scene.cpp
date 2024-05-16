@@ -141,12 +141,12 @@ Eigen::Matrix4d Scene::Pipeline::parallel_matrix()
 }
 
 // Shading
-void Scene::Pipeline::apply_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer, SDL_Texture *texture)
+void Scene::Pipeline::apply_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer)
 {
     switch (shading)
     {
     case Shading::NO_SHADING:
-        apply_wireframe_shading(polyhedra, renderer, texture);
+        apply_wireframe_shading(polyhedra, renderer);
         break;
     case Shading::CONSTANT:
         break;
@@ -160,7 +160,7 @@ void Scene::Pipeline::apply_shading(std::vector<Poly::Polyhedron> polyhedra, SDL
     }
 }
 
-void Scene::Pipeline::apply_wireframe_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer, SDL_Texture *texture)
+void Scene::Pipeline::apply_wireframe_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer)
 {
     for (int i = 0; i < polyhedra.size(); i++)
     {
@@ -211,10 +211,9 @@ void Scene::Pipeline::rotate_object(size_t index, double x, double y, double z)
 
 // Pipeline Main Flux
 
-void Scene::Pipeline::apply(SDL_Renderer *renderer, SDL_Texture *texture)
+void Scene::Pipeline::render(SDL_Renderer *renderer)
 {
-    SDL_SetRenderTarget(renderer, texture);
-    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    printf("PIPELINE: Rendering...\n");
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     Eigen::Matrix4d wv_matrix = this->window_to_viewport_matrix();
@@ -224,13 +223,10 @@ void Scene::Pipeline::apply(SDL_Renderer *renderer, SDL_Texture *texture)
     std::vector<Poly::Polyhedron> polyhedra = this->scene_objects;
     for (int i = 0; i < polyhedra.size(); i++)
     {
-        printf("Faces amount: %i\n", polyhedra[i].faces.size());
         polyhedra[i].transform(sru_srt_matrix);
-        // polyhedra[i].print_faces();
-        // std::exit(1);
     }
-    apply_shading(polyhedra, renderer, texture);
-    SDL_SetRenderTarget(renderer, NULL);
+    apply_shading(polyhedra, renderer);
+    this->pipeline_altered = false;
 }
 
 // Wireframe
