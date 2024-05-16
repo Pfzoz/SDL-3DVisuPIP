@@ -3,10 +3,7 @@
 Camera::Camera()
 {
     vrp = Eigen::Vector3d(0, 0, 0);
-    focal_point = Eigen::Vector3d(0, 0, 1);
-    u = Eigen::Vector3d(1, 0, 0);
-    v = Eigen::Vector3d(0, 1, 0);
-    n = Eigen::Vector3d(0, 0, -1);
+    set_focal_point(Eigen::Vector3d(1, 0, 0));
 }
 
 // Setters

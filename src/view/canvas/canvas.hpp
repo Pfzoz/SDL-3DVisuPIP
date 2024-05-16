@@ -2,7 +2,7 @@
 #define CANVAS_H
 
 #include <vector>
-#include <pipeline.hpp>
+#include <scene.hpp>
 #include <primitives.hpp>
 
 class Canvas

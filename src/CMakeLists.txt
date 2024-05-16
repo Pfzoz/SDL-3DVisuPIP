@@ -34,7 +34,7 @@ add_subdirectory(imgui)
 
 add_subdirectory(utils)
 add_subdirectory(poly)
-add_subdirectory(pipeline)
+add_subdirectory(scene)
 add_subdirectory(view)
 
 add_executable(

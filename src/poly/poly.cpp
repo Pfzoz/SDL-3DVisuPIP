@@ -35,6 +35,7 @@ Poly::Polyhedron::Polyhedron(const Polyhedron &other)
 {
     this->vertices = other.vertices;
     this->segments = other.segments;
+    this->faces = other.faces;
 }
 
 // Getters
@@ -155,6 +156,47 @@ void Poly::Polyhedron::transform(Eigen::Matrix4d matrix)
 {
     Eigen::MatrixXd hmatrix = this->get_hmatrix();
     Eigen::MatrixXd result = matrix * hmatrix;
+    printf("Result\n");
+    print_matrix(result);
     for (int i = 0; i < this->vertices.size(); i++)
-        this->vertices[i] = result.col(i).head(3);
+    {
+        this->vertices[i] = result.block<3, 1>(0, i).cast<double>();
+    }
+    this->print_faces();
+}
+
+size_t Poly::Polyhedron::find_segment(size_t p1, size_t p2, bool ignore_direction)
+{
+    if (!ignore_direction)
+    {
+        for (int i = 0; i < segments.size(); i++)
+        {
+            if (segments[i].p1 == p1 && segments[i].p2 == p2)
+                return i;
+        }
+    }
+    else
+    {
+        for (int i = 0; i < segments.size(); i++)
+        {
+            if ((segments[i].p1 == p1 && segments[i].p2 == p2) || (segments[i].p1 == p2 && segments[i].p2 == p1))
+                return i;
+        }
+    }
+    return -1;
+}
+
+void Poly::Polyhedron::print_faces()
+{
+    for (int i = 0; i < faces.size(); i++)
+    {
+        printf("Face %i\n", i);
+        for (int j = 0; j < faces[i].segments.size(); j++)
+        {
+            printf("Segment(");
+            printf("(%f,%f,%f),", vertices[segments[faces[i].segments[j]].p1].x(), vertices[segments[faces[i].segments[j]].p1].y(), vertices[segments[faces[i].segments[j]].p1].z());
+            printf("(%f,%f,%f)", vertices[segments[faces[i].segments[j]].p2].x(), vertices[segments[faces[i].segments[j]].p2].y(), vertices[segments[faces[i].segments[j]].p2].z());
+            printf(")\n");
+        }
+    }
 }

@@ -14,6 +14,6 @@ target_link_libraries(View
     Primitives
     Utils
     Viewport
-    Pipeline
+    Scene
     SDL2::SDL2
     imgui)

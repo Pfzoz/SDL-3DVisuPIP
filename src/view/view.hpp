@@ -9,9 +9,11 @@
 #include <poly.hpp>
 #include <viewport.hpp>
 #include <canvas/canvas.hpp>
-#include <pipeline.hpp>
+#include <scene.hpp>
+#include <string>
+#include <vector>
 
-enum class Scene
+enum class Screen
 {
     Generatrix,
     Viewport
@@ -20,28 +22,40 @@ enum class Scene
 class View
 {
 private:
+    // SDL Vars
+    double last_time = SDL_GetTicks64();
+
     // U.I Flags and Control Vars
     const float menu_height = 50;
     bool menu_generatrix_open = true;
     bool menu_camera_open = true;
+    bool menu_objects_open = false;
     bool logical_size_follow_screen = false;
+    int selected_object = 0;
+    // Translation Vars
+    double tx, ty, tz; 
+    // Rotatation Vars
+    double rx, ry, rz; 
+    bool lock_rotation_position = true;
+    bool rotation_animate = false;
 
     // Drawing Vars
     SDL_Window* window = NULL;
-    Scene scene_number = Scene::Generatrix;
+    Screen scene_number = Screen::Generatrix;
     SDL_FPoint *dragging_point = NULL;
     time_t mouse_down_time = time(NULL);
     int screen_width, screen_height;
     int wireframe_slices_amount = 3;
     Canvas canvas;
     Viewport viewport;
-    Pip::Pipeline pipeline = Pip::Pipeline::get_pipeline();
+    Scene::Pipeline &pipeline = Scene::Pipeline::get_pipeline();
 
     // Drawing - UI
     void draw_ui();
     void draw_generatrix_menu();
     void draw_point_position();
     void draw_camera_menu();
+    void draw_objects_menu();
 
     // Drawing - Screen
     void drag_point(int mouse_x, int mouse_y);

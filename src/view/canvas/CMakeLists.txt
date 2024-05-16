@@ -7,5 +7,5 @@ target_include_directories(Canvas PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(Canvas  
     PUBLIC 
-    Pipeline
+    Scene
     Primitives)

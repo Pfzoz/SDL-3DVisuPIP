@@ -3,7 +3,9 @@
 
 #include <vector>
 #include <Eigen/Core>
+#include <Eigen/Dense>
 #include "transformation/transformation.hpp"
+#include <utils.hpp>
 
 namespace Poly
 {
@@ -40,6 +42,9 @@ namespace Poly
         Eigen::MatrixXd get_matrix();
         Eigen::MatrixXd get_hmatrix();
         Eigen::Vector3d get_center();
+        size_t find_vertex(Eigen::Vector3d vertex);
+        size_t find_segment(size_t p1, size_t p2, bool ignore_direction = false);
+        size_t find_face(std::vector<size_t> segments);
 
         // Setters
         void move_to(Eigen::Vector3d pos);
@@ -50,6 +55,10 @@ namespace Poly
         void translate(Eigen::Vector3d v);
         void mirror(bool x, bool y, bool z);
         void transform(Eigen::Matrix4d matrix);
+
+        // Repr
+        void print_faces();
+
     };
 
 }

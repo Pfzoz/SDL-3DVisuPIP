@@ -1,28 +1,42 @@
 #include <iostream>
-#include "pipeline.hpp"
+#include "scene.hpp"
 #include <map>
 
-Pip::Pipeline::Pipeline() {}
+Scene::Pipeline::Pipeline() {}
 
-Pip::Pipeline &Pip::Pipeline::get_pipeline()
+Scene::Pipeline &Scene::Pipeline::get_pipeline()
 {
     static Pipeline instance;
     return instance;
 }
 
 // Setters
-void Pip::Pipeline::set_vrp(double x, double y, double z)
+void Scene::Pipeline::set_vrp(double x, double y, double z)
 {
     this->camera.set_vrp({x, y, z});
+    this->pipeline_altered = true;
 }
 
-void Pip::Pipeline::set_focal_point(double x, double y, double z)
+void Scene::Pipeline::set_focal_point(double x, double y, double z)
 {
     this->camera.set_focal_point({x, y, z});
+    this->pipeline_altered = true;
+}
+
+void Scene::Pipeline::set_window(SDL_Rect dimensions)
+{
+    this->window = dimensions;
+    this->pipeline_altered = true;
+}
+
+void Scene::Pipeline::set_srt(SDL_Rect dimensions)
+{
+    this->screen = dimensions;
+    this->pipeline_altered = true;
 }
 
 // Getters
-void Pip::Pipeline::get_vrp(double *x, double *y, double *z)
+void Scene::Pipeline::get_vrp(double *x, double *y, double *z)
 {
     Eigen::Vector3d vrp = this->camera.get_vrp();
     *x = vrp(0);
@@ -30,7 +44,7 @@ void Pip::Pipeline::get_vrp(double *x, double *y, double *z)
     *z = vrp(2);
 }
 
-void Pip::Pipeline::get_focal_point(double *x, double *y, double *z)
+void Scene::Pipeline::get_focal_point(double *x, double *y, double *z)
 {
     Eigen::Vector3d focal_point = this->camera.get_focal_point();
     *x = focal_point(0);
@@ -38,7 +52,7 @@ void Pip::Pipeline::get_focal_point(double *x, double *y, double *z)
     *z = focal_point(2);
 }
 
-void Pip::Pipeline::get_camera_view_direction(double *x, double *y, double *z)
+void Scene::Pipeline::get_camera_view_direction(double *x, double *y, double *z)
 {
     Eigen::Vector3d n = this->camera.get_n();
     *x = n(0);
@@ -46,7 +60,7 @@ void Pip::Pipeline::get_camera_view_direction(double *x, double *y, double *z)
     *z = n(2);
 }
 
-void Pip::Pipeline::get_camera_view_right(double *x, double *y, double *z)
+void Scene::Pipeline::get_camera_view_right(double *x, double *y, double *z)
 {
     Eigen::Vector3d u = this->camera.get_u();
     *x = u(0);
@@ -54,7 +68,7 @@ void Pip::Pipeline::get_camera_view_right(double *x, double *y, double *z)
     *z = u(2);
 }
 
-void Pip::Pipeline::get_camera_view_up(double *x, double *y, double *z)
+void Scene::Pipeline::get_camera_view_up(double *x, double *y, double *z)
 {
     Eigen::Vector3d v = this->camera.get_v();
     *x = v(0);
@@ -62,53 +76,160 @@ void Pip::Pipeline::get_camera_view_up(double *x, double *y, double *z)
     *z = v(2);
 }
 
-// Pipeline Main Flux
-
-void Pip::Pipeline::apply(SDL_Renderer *renderer, SDL_Texture *texture)
+bool Scene::Pipeline::is_altered()
 {
-    SDL_SetRenderTarget(renderer, texture);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
+    return this->pipeline_altered;
+}
 
-    Eigen::Matrix4d wv_matrix = this->window_to_viewport_matrix();
-    Eigen::Matrix4d projection_matrix;
-    switch (this->projection)
+// Window to Viewport
+Eigen::Matrix4d Scene::Pipeline::window_to_viewport_matrix()
+{
+    // U = Screen X, V = Screen Y, X = Window X, Y = Window Y
+    Eigen::Matrix4d matrix;
+    matrix << 1, 0, 0, 1,
+        0, 1, 0, 1,
+        0, 0, 1, 0,
+        0, 0, 0, 1;
+    double screen_range_x = screen.w - screen.x;
+    double screen_range_y = screen.h - screen.y;
+    double window_range_x = window.w - window.x;
+    double window_range_y = window.h - window.y;
+    matrix(0, 0) = (screen_range_x) / (window_range_x);
+    matrix(0, 3) = -window.x * (screen_range_x / window_range_x) + screen.x;
+    matrix(1, 1) = (screen_range_y) / (window_range_y);
+    matrix(1, 3) = -window.y * (screen_range_y / window_range_y) + screen.y;
+    return matrix;
+}
+
+// Projections
+Eigen::Matrix4d Scene::Pipeline::get_projection_matrix()
+{
+    Eigen::Matrix4d return_matrix;
+    switch (projection)
     {
     case Projection::PERSPECTIVE:
-        projection_matrix = this->perspective_matrix();
+        // return perspective_matrix();
         break;
     case Projection::ORTHOGRAPHIC_X:
-        projection_matrix = this->ortographic_x_matrix();
+        // return ortographic_x_matrix();
         break;
     case Projection::ORTHOGRAPHIC_Y:
-        projection_matrix = this->ortographic_y_matrix();
+        // return ortographic_y_matrix();
         break;
     case Projection::ORTHOGRAPHIC_Z:
-        projection_matrix = this->ortographic_z_matrix();
+        // return ortographic_z_matrix();
         break;
     case Projection::PARALLEL:
-        projection_matrix = this->parallel_matrix();
+        return parallel_matrix();
         break;
+    default:
+        printf("No projection defined!\n");
+        std::exit(1);
     }
+    return return_matrix;
+}
+
+// Parallel
+Eigen::Matrix4d Scene::Pipeline::parallel_matrix()
+{
+    Eigen::Matrix4d matrix;
+    matrix << 1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 1;
+    return matrix;
+}
+
+// Shading
+void Scene::Pipeline::apply_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer, SDL_Texture *texture)
+{
+    switch (shading)
+    {
+    case Shading::NO_SHADING:
+        apply_wireframe_shading(polyhedra, renderer, texture);
+        break;
+    case Shading::CONSTANT:
+        break;
+    case Shading::GOURAUD:
+        break;
+    case Shading::PHONG:
+        break;
+    default:
+        printf("No shading defined!\n");
+        std::exit(1);
+    }
+}
+
+void Scene::Pipeline::apply_wireframe_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer, SDL_Texture *texture)
+{
+    for (int i = 0; i < polyhedra.size(); i++)
+    {
+        for (int j = 0; j < polyhedra[i].segments.size(); j++)
+        {
+            Eigen::Vector3d v1 = polyhedra[i].vertices[polyhedra[i].segments[j].p1];
+            Eigen::Vector3d v2 = polyhedra[i].vertices[polyhedra[i].segments[j].p2];
+            SDL_FPoint p1 = {(float)v1.x(), (float)v1.y()};
+            SDL_FPoint p2 = {(float)v2.x(), (float)v2.y()};
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            SDL_RenderDrawLineF(renderer, p1.x, p1.y, p2.x, p2.y);
+        }
+    }
+}
+
+// Objects
+void Scene::Pipeline::get_object_center(size_t index, double *x, double *y, double *z)
+{
+    Eigen::Vector3d center = scene_objects[index].get_center();
+    *x = center(0);
+    *y = center(1);
+    *z = center(2);
+}
+
+void Scene::Pipeline::add_object(Poly::Polyhedron object)
+{
+    scene_objects.push_back(object);
+    this->pipeline_altered = true;
+}
+
+void Scene::Pipeline::remove_object(size_t index)
+{
+    scene_objects.erase(scene_objects.begin() + index);
+    this->pipeline_altered = true;
+}
+
+void Scene::Pipeline::translate_object(size_t index, double x, double y, double z)
+{
+    scene_objects[index].translate(x, y, z);
+    this->pipeline_altered = true;
+}
+
+void Scene::Pipeline::rotate_object(size_t index, double x, double y, double z)
+{
+    scene_objects[index].rotate(x, y, z);
+    this->pipeline_altered = true;
+}
+
+// Pipeline Main Flux
+
+void Scene::Pipeline::apply(SDL_Renderer *renderer, SDL_Texture *texture)
+{
+    SDL_SetRenderTarget(renderer, texture);
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    Eigen::Matrix4d wv_matrix = this->window_to_viewport_matrix();
+    Eigen::Matrix4d projection_matrix = this->get_projection_matrix();
     Eigen::Matrix4d src_matrix = this->camera.get_src_matrix();
     Eigen::Matrix4d sru_srt_matrix = wv_matrix * projection_matrix * src_matrix;
     std::vector<Poly::Polyhedron> polyhedra = this->scene_objects;
     for (int i = 0; i < polyhedra.size(); i++)
-        polyhedra[i].transform(sru_srt_matrix);
-    if (this->shading == Shading::NO_SHADING)
     {
-        for (int i = 0; i < polyhedra.size(); i++)
-        {
-            for (int j = 0; j < polyhedra[i].segments.size(); i++)
-            {
-                Eigen::Vector3d v1 = polyhedra[i].vertices[polyhedra[i].segments[j].p1];
-                Eigen::Vector3d v2 = polyhedra[i].vertices[polyhedra[i].segments[j].p2];
-                SDL_FPoint p1 = {v1.x(), v1.y()};
-                SDL_FPoint p2 = {v2.x(), v2.y()};
-                SDL_RenderDrawLineF(renderer, p1.x, p1.y, p2.x, p2.y);
-            }
-        }
+        printf("Faces amount: %i\n", polyhedra[i].faces.size());
+        polyhedra[i].transform(sru_srt_matrix);
+        // polyhedra[i].print_faces();
+        // std::exit(1);
     }
+    apply_shading(polyhedra, renderer, texture);
     SDL_SetRenderTarget(renderer, NULL);
 }
 
@@ -382,7 +503,7 @@ void identify_external_faces(Poly::Polyhedron &poly, Poly::Polyhedron slice, int
     }
 }
 
-Poly::Polyhedron Pip::wireframe(std::vector<SDL_FPoint> generatrix_points, int slices)
+Poly::Polyhedron Scene::wireframe(std::vector<SDL_FPoint> generatrix_points, int slices)
 {
     if (slices < 3)
     {

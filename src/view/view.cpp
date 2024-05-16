@@ -34,21 +34,21 @@ void View::draw_ui()
     {
         if (ImGui::BeginMenu("Screen"))
         {
-            if (ImGui::MenuItem("Generatrix", nullptr, this->scene_number == Scene::Generatrix))
+            if (ImGui::MenuItem("Generatrix", nullptr, this->scene_number == Screen::Generatrix))
             {
-                scene_number = Scene::Generatrix;
+                scene_number = Screen::Generatrix;
                 SDL_SetWindowTitle(this->window, "SDL3DVisuPIP - Generatrix");
             }
-            if (ImGui::MenuItem("Viewport", nullptr, this->scene_number == Scene::Viewport))
+            if (ImGui::MenuItem("Viewport", nullptr, this->scene_number == Screen::Viewport))
             {
-                scene_number = Scene::Viewport;
+                scene_number = Screen::Viewport;
                 SDL_SetWindowTitle(this->window, "SDL3DVisuPIP - Viewport");
             }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Windows"))
         {
-            if (this->scene_number == Scene::Generatrix)
+            if (this->scene_number == Screen::Generatrix)
             {
                 if (ImGui::MenuItem("Generatrix Panel", nullptr, this->menu_generatrix_open))
                 {
@@ -61,6 +61,10 @@ void View::draw_ui()
                 {
                     this->menu_camera_open = !this->menu_camera_open;
                 }
+                if (ImGui::MenuItem("Objects Panel", nullptr, this->menu_objects_open))
+                {
+                    this->menu_objects_open = !this->menu_objects_open;
+                }
             }
             ImGui::EndMenu();
         }
@@ -72,7 +76,7 @@ void View::draw_ui()
         ImGui::EndMenuBar();
     }
     ImGui::End();
-    if (this->scene_number == Scene::Generatrix)
+    if (this->scene_number == Screen::Generatrix)
     {
         draw_generatrix_menu();
         draw_point_position();
@@ -80,6 +84,7 @@ void View::draw_ui()
     else
     {
         draw_camera_menu();
+        draw_objects_menu();
     }
     if (this->logical_size_follow_screen)
     {
@@ -115,6 +120,8 @@ void View::draw_generatrix_menu()
         if (ImGui::Button("Create Wireframe (Send to 3D)", {ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 1.25f}))
         {
             Poly::Polyhedron wireframe = canvas.get_wireframe(this->wireframe_slices_amount);
+            // wireframe.print_faces();
+            pipeline.add_object(wireframe);
         }
         if (ImGui::Button("Clear Points", {ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 1.25f}))
             canvas.clear();
@@ -157,9 +164,7 @@ void View::draw_camera_menu()
         ImGui::InputDouble("##SRCX", &input_x, width_step, width_fast_step, "%.6f...");
         ImGui::InputDouble("##SRCY", &input_y, height_step, height_fast_step, "%.6f...");
         ImGui::InputDouble("##SRCZ", &input_z, height_step, height_fast_step, "%.6f...");
-        if (x != input_x
-            || y != input_y
-            || z != input_z)
+        if (x != input_x || y != input_y || z != input_z)
         {
             this->pipeline.set_vrp(input_x, input_y, input_z);
         }
@@ -169,9 +174,7 @@ void View::draw_camera_menu()
         ImGui::InputDouble("##FPX", &input_fx, width_step, width_fast_step, "%.6f...");
         ImGui::InputDouble("##FPY", &input_fy, height_step, height_fast_step, "%.6f...");
         ImGui::InputDouble("##FPZ", &input_fz, height_step, height_fast_step, "%.6f...");
-        if (x != input_fx
-            || y != input_fy
-            || z != input_fz)
+        if (x != input_fx || y != input_fy || z != input_fz)
         {
             this->pipeline.set_focal_point(input_fx, input_fy, input_fz);
         }
@@ -189,13 +192,84 @@ void View::draw_camera_menu()
     }
 }
 
+void View::draw_objects_menu()
+{
+    if (this->menu_objects_open)
+    {
+        ImGui::SetNextWindowSizeConstraints({ImGui::CalcTextSize("Object Options").x, 0.0f}, {-1, -1});
+        ImGui::Begin("Object Options", &this->menu_objects_open, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::SetWindowFontScale(1.4f);
+        ImGui::SetWindowPos({0, menu_height}, ImGuiCond_FirstUseEver);
+        ImGui::Text("Selected Object");
+        std::vector<const char *> object_names;
+        for (int i = 0; i < pipeline.scene_objects.size(); i++)
+        {
+            std::string object_name = "Object " + std::to_string(i);
+            object_names.push_back(object_name.c_str());
+        }
+        ImGui::Combo("##OBJDROPDOWN", &this->selected_object, object_names.data(), object_names.size());
+        if (selected_object != -1)
+        {
+            ImGui::Text("Translate");
+            ImGui::InputDouble("##TX", &tx, 0.01, 0.01, "%.6f...");
+            ImGui::InputDouble("##TY", &ty, 0.01, 0.01, "%.6f...");
+            ImGui::InputDouble("##TZ", &tz, 0.01, 0.01, "%.6f...");
+            if (ImGui::Button("Translate"))
+            {
+                this->pipeline.translate_object(selected_object, tx, ty, tz);
+            }
+            ImGui::Text("Rotate");
+            ImGui::Selectable("##LOCKPOSITIONROTATE", &lock_rotation_position);
+            ImGui::SameLine();
+            ImGui::Text("Lock Position");
+            ImGui::InputDouble("##RX", &rx, 0.01, 0.01, "%.6f...");
+            ImGui::InputDouble("##RY", &ry, 0.01, 0.01, "%.6f...");
+            ImGui::InputDouble("##RZ", &rz, 0.01, 0.01, "%.6f...");
+            ImGui::Selectable("##ANIMATEROTATE", &rotation_animate, 0, {0, 0});
+            ImGui::SameLine();
+            ImGui::Text("Animate");
+            double delta = SDL_GetTicks64() - last_time;
+            if (ImGui::Button("Rotate"))
+            {
+                if (!rotation_animate)
+                {
+                    if (!lock_rotation_position)
+                        this->pipeline.rotate_object(selected_object, rx, ry, rz);
+                    else
+                    {
+                        double x, y, z;
+                        this->pipeline.get_object_center(selected_object, &x, &y, &z);
+                        this->pipeline.translate_object(selected_object, -x, -y, -z);
+                        this->pipeline.rotate_object(selected_object, rx, ry, rz);
+                        this->pipeline.translate_object(selected_object, x, y, z);
+                    }
+                }
+            }
+            else if (rotation_animate)
+            {
+                double x, y, z;
+                this->pipeline.get_object_center(selected_object, &x, &y, &z);
+                this->pipeline.translate_object(selected_object, -x, -y, -z);
+                this->pipeline.rotate_object(selected_object, rx / delta, ry / delta, rz / delta);
+                this->pipeline.translate_object(selected_object, x, y, z);
+            }
+            if (ImGui::Button("Delete"))
+            {
+                this->pipeline.remove_object(selected_object);
+                this->selected_object = -1;
+            }
+        }
+        ImGui::End();
+    }
+}
+
 // Drawing - Scenes
 void View::draw(SDL_Renderer *renderer)
 {
     // U.I Drawing (Comes first so events work correctly)
     this->draw_ui();
     // Screen Drawing
-    if (scene_number == Scene::Generatrix)
+    if (scene_number == Screen::Generatrix)
     {
         if (this->dragging_point != NULL)
         {
@@ -268,7 +342,7 @@ void View::generatrix_mouse_left_down(int x, int y)
 void View::handle_events(const SDL_Event *event)
 {
     // Handles depending on current scene
-    if (this->scene_number == Scene::Generatrix)
+    if (this->scene_number == Screen::Generatrix)
         this->handle_generatrix_events(event);
     else
         this->handle_viewport_events(event);
