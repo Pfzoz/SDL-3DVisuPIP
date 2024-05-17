@@ -16,7 +16,9 @@ Viewport::Viewport(int x, int y, int width, int height)
 void Viewport::draw(SDL_Renderer *renderer)
 {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
     Scene::Pipeline &pipeline = Scene::Pipeline::get_pipeline();
     pipeline.render(renderer);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderDrawRect(renderer, &geometry);
 }

@@ -209,22 +209,26 @@ void Scene::Pipeline::rotate_object(size_t index, double x, double y, double z)
     this->pipeline_altered = true;
 }
 
+// Z-Buffer
+
+void Scene::Pipeline::apply_z_buffer(std::vector<Poly::Polyhedron> &polyhedra)
+{
+    // TODO
+}
+
 // Pipeline Main Flux
 
 void Scene::Pipeline::render(SDL_Renderer *renderer)
 {
-    printf("PIPELINE: Rendering...\n");
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
     Eigen::Matrix4d wv_matrix = this->window_to_viewport_matrix();
     Eigen::Matrix4d projection_matrix = this->get_projection_matrix();
     Eigen::Matrix4d src_matrix = this->camera.get_src_matrix();
     Eigen::Matrix4d sru_srt_matrix = wv_matrix * projection_matrix * src_matrix;
     std::vector<Poly::Polyhedron> polyhedra = this->scene_objects;
     for (int i = 0; i < polyhedra.size(); i++)
-    {
         polyhedra[i].transform(sru_srt_matrix);
-    }
+    if (use_z_buffer)
+        apply_z_buffer(polyhedra);
     apply_shading(polyhedra, renderer);
     this->pipeline_altered = false;
 }
