@@ -250,7 +250,6 @@ void View::draw_objects_menu()
             }
             else if (rotation_animate)
             {
-                printf("Here\n");
                 double x, y, z;
                 this->pipeline.get_object_center(selected_object, &x, &y, &z);
                 this->pipeline.translate_object(selected_object, -x, -y, -z);

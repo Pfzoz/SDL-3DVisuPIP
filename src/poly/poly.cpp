@@ -157,10 +157,7 @@ void Poly::Polyhedron::transform(Eigen::Matrix4d matrix)
     Eigen::MatrixXd hmatrix = this->get_hmatrix();
     Eigen::MatrixXd result = matrix * hmatrix;
     for (int i = 0; i < this->vertices.size(); i++)
-    {
         this->vertices[i] = result.block<3, 1>(0, i).cast<double>();
-    }
-    this->print_faces();
 }
 
 size_t Poly::Polyhedron::find_segment(size_t p1, size_t p2, bool ignore_direction)
