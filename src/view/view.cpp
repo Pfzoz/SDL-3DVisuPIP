@@ -299,18 +299,35 @@ void View::drag_point(int mouse_x, int mouse_y)
     SDL_FPoint normalized_point = this->canvas.normalize(mouse_x, mouse_y);
     mouse_y = mouse_y - this->canvas.geometry.y;
     mouse_x = mouse_x - this->canvas.geometry.x;
-    if (mouse_x < 0)
-        this->dragging_point->x = 0;
-    else if (mouse_x > this->canvas.geometry.w)
-        this->dragging_point->x = 1;
+    const Uint8 *keystate = SDL_GetKeyboardState(NULL);
+    if (keystate[SDL_SCANCODE_LCTRL] || keystate[SDL_SCANCODE_RCTRL])
+    {
+        for (int i = 0; i < this->canvas.points.size(); i++)
+        {
+            double lock_in_range = 0.01;
+            if (this->canvas.points[i].x > normalized_point.x - lock_in_range && this->canvas.points[i].x<normalized_point.x + lock_in_range &&this->canvas.points[i].y> normalized_point.y - lock_in_range && this->canvas.points[i].y < normalized_point.y + lock_in_range)
+            {
+                this->dragging_point->x = this->canvas.points[i].x;
+                this->dragging_point->y = this->canvas.points[i].y;
+                break;
+            }
+        }
+    }
     else
-        this->dragging_point->x = normalized_point.x;
-    if (mouse_y < 0)
-        this->dragging_point->y = 0;
-    else if (mouse_y > this->canvas.geometry.h)
-        this->dragging_point->y = 1;
-    else
-        this->dragging_point->y = normalized_point.y;
+    {
+        if (mouse_x < 0)
+            this->dragging_point->x = 0;
+        else if (mouse_x > this->canvas.geometry.w)
+            this->dragging_point->x = 1;
+        else
+            this->dragging_point->x = normalized_point.x;
+        if (mouse_y < 0)
+            this->dragging_point->y = 0;
+        else if (mouse_y > this->canvas.geometry.h)
+            this->dragging_point->y = 1;
+        else
+            this->dragging_point->y = normalized_point.y;
+    }
 }
 
 // Events

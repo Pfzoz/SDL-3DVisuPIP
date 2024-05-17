@@ -1,4 +1,5 @@
 add_subdirectory(camera)
+add_subdirectory(wireframe)
 
 add_library(Scene STATIC 
     scene.hpp 
@@ -11,5 +12,6 @@ target_link_libraries(Scene
     Poly
     Utils
     Camera
+    Wireframe
     Eigen3::Eigen
     SDL2::SDL2)

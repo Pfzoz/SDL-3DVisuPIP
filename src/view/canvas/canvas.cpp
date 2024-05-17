@@ -66,5 +66,5 @@ Poly::Polyhedron Canvas::get_wireframe(int slices_amount)
         transformed_point.y = (1 - this->points[i].y) * (float)this->l_height;
         transformed_points.push_back(transformed_point);
     }
-    return Scene::wireframe(transformed_points, slices_amount);
+    return Scene::create_wireframe(transformed_points, slices_amount);
 }

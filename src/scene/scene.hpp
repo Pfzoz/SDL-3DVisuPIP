@@ -7,6 +7,7 @@
 #include <utils.hpp>
 #include <Eigen/Core>
 #include <camera.hpp>
+#include <wireframe.hpp>
 
 namespace Scene
 {
@@ -29,7 +30,7 @@ namespace Scene
     };
 
     // Wireframe
-    Poly::Polyhedron wireframe(std::vector<SDL_FPoint> generatrix, int slices);
+    Poly::Polyhedron create_wireframe(std::vector<SDL_FPoint> generatrix, int slices);
 
     // Pipeline Singleton
     class Pipeline
@@ -58,6 +59,7 @@ namespace Scene
         void get_camera_view_direction(double *x, double *y, double *z);
         void get_camera_view_right(double *x, double *y, double *z);
         SDL_Rect get_window();
+        SDL_Rect get_srt();
         Projection get_projection();
         Shading get_shading();
         bool is_altered();
