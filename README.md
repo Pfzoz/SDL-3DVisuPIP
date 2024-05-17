@@ -7,7 +7,7 @@ To install this program, just do the following commands:
     cmake ..
     cmake --build . --install target
 
-The executable will be generated under src.
+The executable will be generated under src. If on Windows, then visual studio must be installed and you will have to use its compiling tools after building. Alternatively you can provide CMake with a path to a Mingw-like compiler.
 
 # SDL 3D-VisuPIP
 
@@ -74,3 +74,27 @@ This command lets you specify which libraries a target requires.
     add_subdirectory(relative_path)
 
 Just adds a subdirectory that will be used in the project, that subdirectory must have another CMakeLists.txt. Therefore you can make a chain CMakeLists.txt flux, helps organizing the project.
+
+### Packages & Fetching
+
+Sometimes we need a dependency that is provived by an operational system package manager, or is just on an external project.
+
+There are many ways to do such. In this project I've utilized the commands **FetchContent** and its really handy **FIND_PACKAGE_ARGS** parameter, which functions as another command nominated **find_package**.
+
+    FetchContent_Declare(
+        PackageName
+        GIT_REPOSITORY url
+        GIT_TAG tag
+        FIND_PACKAGE_ARGS NAMES PackageName
+    )
+
+With this I have declared that the package "PackageName" is declared in this project for further usage. With FIND_PACKAGE_ARGS I tell CMake it should first look in the operational system's packages if a native installation is already in place.
+
+    FetchContent_MakeAvailable(PackageName)
+
+Finally this commands makes the package available, downloading it directly from the source provided, and as long as it has a CMake configuration, it will be correctly added to your project and furnish library variables such as SDL2::SDL2 for SDL2. Or, if already located in the system, just added directly without any actual fetching.
+
+A lot times packages will not be compatible with CMake and you must first make sure it's populated and provide your own configuration on how to include that package. See the CMakeLists.txt on the imgui folder to see how that can be handled.
+
+Credits to https://martin-fieber.de/blog/gui-development-with-cpp-sdl2-and-dear-imgui/ for alot of useful information on both CMake and SDL2+Imgui.
+
