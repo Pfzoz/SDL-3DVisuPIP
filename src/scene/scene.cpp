@@ -108,7 +108,7 @@ Eigen::Matrix4d Scene::Pipeline::get_projection_matrix()
     switch (projection)
     {
     case Projection::PERSPECTIVE:
-        // return perspective_matrix();
+        return perspective_matrix();
         break;
     case Projection::ORTHOGRAPHIC_X:
         // return ortographic_x_matrix();
@@ -137,6 +137,15 @@ Eigen::Matrix4d Scene::Pipeline::parallel_matrix()
         0, 1, 0, 0,
         0, 0, 0, 0,
         0, 0, 0, 1;
+    return matrix;
+}
+
+// Perspective
+
+Eigen::Matrix4d Scene::Pipeline::perspective_matrix()
+{
+    Eigen::Matrix4d matrix;
+    // TODO
     return matrix;
 }
 
