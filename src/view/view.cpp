@@ -65,6 +65,10 @@ void View::draw_ui()
                 {
                     this->menu_objects_open = !this->menu_objects_open;
                 }
+                if (ImGui::MenuItem("Projection Panel", nullptr, this->menu_projection_open))
+                {
+                    this->menu_projection_open = !this->menu_projection_open;
+                }
             }
             ImGui::EndMenu();
         }
@@ -85,6 +89,7 @@ void View::draw_ui()
     {
         draw_camera_menu();
         draw_objects_menu();
+        draw_projection_menu();
     }
     if (this->logical_size_follow_screen)
     {
@@ -267,6 +272,37 @@ void View::draw_objects_menu()
                     object_names.push_back(object_name);
                 }
             }
+        }
+        ImGui::End();
+    }
+}
+
+void View::draw_projection_menu()
+{
+    if (this->menu_projection_open)
+    {
+        ImGui::SetNextWindowSizeConstraints({ImGui::CalcTextSize("Projection Options").x, 0.0f}, {-1, -1});
+        ImGui::Begin("Projection Options", &this->menu_projection_open, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::SetWindowFontScale(1.4f);
+        ImGui::SetWindowPos({0, menu_height}, ImGuiCond_FirstUseEver);
+        std::vector<const char*> projection_names_c;
+        projection_names_c.push_back("Parallel");
+        projection_names_c.push_back("Perspective");
+        int previous_selection = this->selected_projection;
+        ImGui::Combo("##PROJDROPDOWN", &this->selected_projection, projection_names_c.data(), projection_names_c.size());
+        if (previous_selection != this->selected_projection)
+        {
+            Scene::Projection projection;
+            switch (selected_projection)
+            {
+                case 0:
+                    projection = Scene::Projection::PARALLEL;
+                    break;
+                case 1:
+                    projection = Scene::Projection::PERSPECTIVE;
+                    break;
+            }
+            this->pipeline.use_projection(projection);
         }
         ImGui::End();
     }

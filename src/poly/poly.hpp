@@ -54,7 +54,7 @@ namespace Poly
         void translate(float x = 0, float y = 0, float z = 0);
         void translate(Eigen::Vector3d v);
         void mirror(bool x, bool y, bool z);
-        void transform(Eigen::Matrix4d matrix);
+        void transform(Eigen::Matrix4d matrix, std::vector<double> *h_factors = nullptr);
 
         // Repr
         void print_faces();

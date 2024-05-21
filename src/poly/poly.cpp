@@ -152,12 +152,17 @@ void Poly::Polyhedron::mirror(bool x, bool y, bool z)
     }
 }
 
-void Poly::Polyhedron::transform(Eigen::Matrix4d matrix)
+void Poly::Polyhedron::transform(Eigen::Matrix4d matrix, std::vector<double> *h_factors)
 {
     Eigen::MatrixXd hmatrix = this->get_hmatrix();
     Eigen::MatrixXd result = matrix * hmatrix;
     for (int i = 0; i < this->vertices.size(); i++)
         this->vertices[i] = result.block<3, 1>(0, i).cast<double>();
+    if (h_factors != nullptr)
+    {
+        for (int i = 0; i < this->vertices.size(); i++)
+            h_factors->push_back(result(3, i));
+    }
 }
 
 size_t Poly::Polyhedron::find_segment(size_t p1, size_t p2, bool ignore_direction)

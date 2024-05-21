@@ -79,7 +79,8 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "valarray": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "fft": "cpp"
     },
     "cmake.sourceDirectory": "/home/pedrozoz/Repositories/University/cg/sdl-3d-pipeline",
     "cmake.configureOnOpen": true

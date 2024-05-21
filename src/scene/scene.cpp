@@ -33,6 +33,12 @@ void Scene::Pipeline::set_srt(SDL_Rect dimensions)
     this->pipeline_altered = true;
 }
 
+void Scene::Pipeline::use_projection(Projection projection_mode)
+{
+    this->projection = projection_mode;
+    this->pipeline_altered = true;
+}
+
 // Getters
 void Scene::Pipeline::get_vrp(double *x, double *y, double *z)
 {
@@ -148,7 +154,14 @@ Eigen::Matrix4d Scene::Pipeline::parallel_matrix()
 Eigen::Matrix4d Scene::Pipeline::perspective_matrix()
 {
     Eigen::Matrix4d matrix;
-    // TODO
+    // Zprp = VRP | Zvp = Focal Point
+    double zprp = 0;
+    double zvp = camera.get_focal_point().norm();
+    double dp_distance = (zvp - zprp);
+    matrix << 1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, ((-zvp)/dp_distance), zvp*((zprp/dp_distance)),
+        0, 0, -(1/dp_distance), (zprp/dp_distance);
     return matrix;
 }
 
@@ -237,8 +250,17 @@ void Scene::Pipeline::render(SDL_Renderer *renderer)
     Eigen::Matrix4d src_matrix = this->camera.get_src_matrix();
     Eigen::Matrix4d sru_srt_matrix = wv_matrix * projection_matrix * src_matrix;
     std::vector<Poly::Polyhedron> polyhedra = this->scene_objects;
+    std::vector<std::vector<double>> h_factors(polyhedra.size());
     for (int i = 0; i < polyhedra.size(); i++)
-        polyhedra[i].transform(sru_srt_matrix);
+        polyhedra[i].transform(sru_srt_matrix, &h_factors[i]);
+    if (projection == Projection::PERSPECTIVE)
+    {
+        for (int i = 0; i < polyhedra.size(); i++)
+        {
+            for (int j = 0; j < polyhedra[i].vertices.size(); j++)
+                polyhedra[i].vertices[j] /= h_factors[i][j];
+;        }
+    }
     if (use_z_buffer)
         apply_z_buffer(polyhedra);
     apply_shading(polyhedra, renderer);

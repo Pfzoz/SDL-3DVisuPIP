@@ -28,10 +28,11 @@ private:
     // U.I Flags and Control Vars
     const float menu_height = 50;
     bool menu_generatrix_open = true;
-    bool menu_camera_open = true;
-    bool menu_objects_open = false;
+    bool menu_camera_open = false;
+    bool menu_objects_open = true;
+    bool menu_projection_open = false;
     bool logical_size_follow_screen = false;
-    int selected_object = 0;
+    int selected_object = 0, selected_projection = 0;
     // Object Vars
     std::vector<std::string> object_names;
     // Translation Vars
@@ -58,6 +59,7 @@ private:
     void draw_point_position();
     void draw_camera_menu();
     void draw_objects_menu();
+    void draw_projection_menu();
 
     // Drawing - Screen
     void drag_point(int mouse_x, int mouse_y);
