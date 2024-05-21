@@ -204,6 +204,23 @@ void identify_internal_faces(Poly::Polyhedron &poly, const Poly::Polyhedron &sli
 
 void identify_external_faces(Poly::Polyhedron &poly, Poly::Polyhedron slice, int slices, std::vector<size_t> shared_vertices, std::map<size_t, std::vector<size_t>> &lands_map)
 {
+    // Identify if Edge Vertices have 1 Segment (If Polyhedron Has Holes)
+    bool first_edge_has_one_segment = false;
+    bool second_edge_has_one_segment = false;
+    int counter = 0;
+    for (int i = 0; i < slice.segments.size(); i++)
+    {
+        if (slice.segments[i].p1 == slice.vertices.size() - 1 || slice.segments[i].p2 == slice.vertices.size() - 1)
+            counter++;
+    }
+    if (counter > 1) first_edge_has_one_segment = true;
+    counter = 0;
+    for (int i = 0; i < slice.segments.size(); i++)
+    {
+        if (slice.segments[i].p1 == 0 || slice.segments[i].p2 == 0)
+            counter++;
+    }
+    if (counter > 1) second_edge_has_one_segment = true;
     // First Face
     bool is_shared = false;
     for (size_t i = 0; i < shared_vertices.size(); i++)
@@ -214,7 +231,7 @@ void identify_external_faces(Poly::Polyhedron &poly, Poly::Polyhedron slice, int
             break;
         }
     }
-    if (!is_shared)
+    if (!is_shared && !first_edge_has_one_segment)
     {
         Poly::Face face;
         for (size_t i = 0; i < slices; i++)
@@ -246,7 +263,7 @@ void identify_external_faces(Poly::Polyhedron &poly, Poly::Polyhedron slice, int
             break;
         }
     }
-    if (!is_shared)
+    if (!is_shared && !second_edge_has_one_segment)
     {
         Poly::Face face;
         size_t last_land = lands_map[0].size() - 1;
@@ -281,20 +298,39 @@ Poly::Polyhedron wireframe(std::vector<SDL_FPoint> generatrix_points, int slices
     std::vector<Poly::Segment> segments;
     std::vector<Eigen::Vector3d> vectors;
 
-    bool shared_edges = false;
-    SDL_FPoint first_point = generatrix_points[0], final_point = generatrix_points[generatrix_points.size() - 1];
-    if (first_point.x == final_point.x && first_point.y == final_point.y)
-    {
-        generatrix_points.pop_back();
-        shared_edges = true;
-        segments.push_back(Poly::Segment{generatrix_points.size() - 1, 0});
-    }
-
     // Create Slice
     for (SDL_FPoint point : generatrix_points)
         vectors.push_back(Eigen::Vector3d(point.x, point.y, 0));
     for (size_t i = 1; i < vectors.size(); i++)
         segments.push_back(Poly::Segment{i - 1, i});
+
+    // Identify Equal Vertices
+    for (int i = 0; i < vectors.size(); i++)
+    {
+        std::vector<size_t> equal_vectors;
+        // Find Vertices Equal to Vertice I
+        for (int j = 0; j < vectors.size(); j++)
+        {
+            if (vectors[j] == vectors[i] && i != j)
+                equal_vectors.push_back(j);
+        }
+        for (int j = 0; j < equal_vectors.size(); j++)
+        {
+            // For Each Segment That Has the Equal Vertex
+            for (int k = 0; k < segments.size(); k++)
+            {
+                // Assign The Equal Vertex to The "Original" Vertex
+                if (segments[k].p1 == equal_vectors[j])
+                    segments[k].p1 = i;
+                else if (segments[k].p2 == equal_vectors[j])
+                    segments[k].p2 = i;
+            }
+        }
+        // Remove Equal Vertices
+        std::sort(equal_vectors.begin(), equal_vectors.end(), std::greater<size_t>());
+        for (int j = 0; j < equal_vectors.size(); j++)
+            vectors.erase(vectors.begin() + equal_vectors[j]);
+    }
 
     Poly::Polyhedron slice(segments, vectors, {});
 
@@ -335,8 +371,7 @@ Poly::Polyhedron wireframe(std::vector<SDL_FPoint> generatrix_points, int slices
     }
 
     identify_internal_faces(result, slice, slices, unshared_vertices, shared_vertices, lands_map);
-    if (!shared_edges)
-        identify_external_faces(result, slice, slices, shared_vertices, lands_map);
+    identify_external_faces(result, slice, slices, shared_vertices, lands_map);
 
     return result;
 }

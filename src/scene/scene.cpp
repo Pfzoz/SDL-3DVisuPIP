@@ -245,6 +245,8 @@ void Scene::Pipeline::render(SDL_Renderer *renderer)
     this->pipeline_altered = false;
 }
 
+// Wireframe
+
 Poly::Polyhedron Scene::create_wireframe(std::vector<SDL_FPoint> generatrix, int slices)
 {
     return wireframe(generatrix, slices);
