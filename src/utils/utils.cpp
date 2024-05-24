@@ -1,6 +1,18 @@
 #include "utils.hpp"
 
-void print_matrix(Eigen::MatrixXd mat)
+void print_matrixi(Eigen::MatrixXi mat)
+{
+    for (int i = 0; i < mat.rows(); i++)
+    {
+        for (int j = 0; j < mat.cols(); j++)
+        {
+            printf("%d ", mat(i, j));
+        }
+        printf("\n");
+    }
+}
+
+void print_matrixd(Eigen::MatrixXd mat)
 {
     for (int i = 0; i < mat.rows(); i++)
     {

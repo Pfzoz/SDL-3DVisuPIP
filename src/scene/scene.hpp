@@ -36,11 +36,13 @@ namespace Scene
     class Pipeline
     {
     private:
-        bool use_z_buffer = false;
+        bool use_z_buffer = true;
         Projection projection = Projection::PARALLEL;
         Shading shading = Shading::NO_SHADING;
         Camera camera;
         SDL_Rect window, screen;
+        Eigen::MatrixXd z_buffer;
+        Eigen::MatrixXi color_buffer;
     public:
         std::vector<Poly::Polyhedron> scene_objects;
 
@@ -72,7 +74,7 @@ namespace Scene
         void rotate_object(size_t, double x, double y, double z);
 
         // Z-Buffer
-        void apply_z_buffer(std::vector<Poly::Polyhedron> &polyhedra);
+        void apply_z_buffer(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer, SDL_Window *window);
 
         // Projection
         Eigen::Matrix4d get_projection_matrix();
@@ -82,7 +84,7 @@ namespace Scene
         void apply_wireframe_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer);
 
         // Render
-        void render(SDL_Renderer *renderer);
+        void render(SDL_Renderer *renderer, SDL_Window *window);
 
         // Acquire Singleton
         static Pipeline &get_pipeline();

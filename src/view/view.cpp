@@ -226,13 +226,20 @@ void View::draw_objects_menu()
             {
                 this->pipeline.translate_object(selected_object, tx, ty, tz);
             }
-            ImGui::Text("Rotate");
+            ImGui::Text("Rotate (Degrees)");
             ImGui::Selectable("##LOCKPOSITIONROTATE", &lock_rotation_position);
             ImGui::SameLine();
             ImGui::Text("Lock Position");
+            double previous_rx = rx, previous_ry = ry, previous_rz = rz;
             ImGui::InputDouble("##RX", &rx, 0.01, 0.01, "%.6f...");
             ImGui::InputDouble("##RY", &ry, 0.01, 0.01, "%.6f...");
             ImGui::InputDouble("##RZ", &rz, 0.01, 0.01, "%.6f...");
+            if (rx != previous_rx || ry != previous_ry || rz != previous_rz)
+            {
+                radians_x = rx * (M_PI / 180.0);
+                radians_y = ry * (M_PI / 180.0);
+                radians_z = rz * (M_PI / 180.0);
+            }
             ImGui::Selectable("##ANIMATEROTATE", &rotation_animate, 0, {50, 0});
             ImGui::SameLine();
             ImGui::Text("Animate");
@@ -242,13 +249,13 @@ void View::draw_objects_menu()
                 if (!rotation_animate)
                 {
                     if (!lock_rotation_position)
-                        this->pipeline.rotate_object(selected_object, rx, ry, rz);
+                        this->pipeline.rotate_object(selected_object, radians_x, radians_y, radians_z);
                     else
                     {
                         double x, y, z;
                         this->pipeline.get_object_center(selected_object, &x, &y, &z);
                         this->pipeline.translate_object(selected_object, -x, -y, -z);
-                        this->pipeline.rotate_object(selected_object, rx, ry, rz);
+                        this->pipeline.rotate_object(selected_object, radians_x, radians_y, radians_z);
                         this->pipeline.translate_object(selected_object, x, y, z);
                     }
                 }
@@ -258,7 +265,7 @@ void View::draw_objects_menu()
                 double x, y, z;
                 this->pipeline.get_object_center(selected_object, &x, &y, &z);
                 this->pipeline.translate_object(selected_object, -x, -y, -z);
-                this->pipeline.rotate_object(selected_object, rx / delta, ry / delta, rz / delta);
+                this->pipeline.rotate_object(selected_object, radians_x / delta, radians_y / delta, radians_z / delta);
                 this->pipeline.translate_object(selected_object, x, y, z);
             }
             if (ImGui::Button("Delete"))
@@ -289,6 +296,7 @@ void View::draw_projection_menu()
         projection_names_c.push_back("Parallel");
         projection_names_c.push_back("Perspective");
         int previous_selection = this->selected_projection;
+        ImGui::Text("Projection Type");
         ImGui::Combo("##PROJDROPDOWN", &this->selected_projection, projection_names_c.data(), projection_names_c.size());
         if (previous_selection != this->selected_projection)
         {
@@ -326,7 +334,7 @@ void View::draw(SDL_Renderer *renderer)
     }
     else
     {
-        this->viewport.draw(renderer);
+        this->viewport.draw(renderer, window);
     }
 }
 

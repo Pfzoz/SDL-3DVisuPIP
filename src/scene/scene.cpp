@@ -1,5 +1,14 @@
 #include "scene.hpp"
 
+struct Scanline_Edge
+{
+    double min_y, max_y;
+    double min_y_x, max_y_x;
+    double min_y_z, max_y_z;
+    double x_y_delta, z_y_delta;
+    double slope;
+};
+
 Scene::Pipeline::Pipeline() {}
 
 Scene::Pipeline &Scene::Pipeline::get_pipeline()
@@ -156,12 +165,12 @@ Eigen::Matrix4d Scene::Pipeline::perspective_matrix()
     Eigen::Matrix4d matrix;
     // Zprp = VRP | Zvp = Focal Point
     double zprp = 0;
-    double zvp = camera.get_focal_point().norm();
+    double zvp = (camera.get_focal_point() - camera.get_vrp()).norm();
     double dp_distance = (zvp - zprp);
     matrix << 1, 0, 0, 0,
         0, 1, 0, 0,
-        0, 0, ((-zvp)/dp_distance), zvp*((zprp/dp_distance)),
-        0, 0, -(1/dp_distance), (zprp/dp_distance);
+        0, 0, ((-zvp) / dp_distance), zvp * ((zprp / dp_distance)),
+        0, 0, -(1 / dp_distance), (zprp / dp_distance);
     return matrix;
 }
 
@@ -193,10 +202,9 @@ void Scene::Pipeline::apply_wireframe_shading(std::vector<Poly::Polyhedron> poly
         {
             Eigen::Vector3d v1 = polyhedra[i].vertices[polyhedra[i].segments[j].p1];
             Eigen::Vector3d v2 = polyhedra[i].vertices[polyhedra[i].segments[j].p2];
-            SDL_FPoint p1 = {(float)v1.x(), (float)v1.y()};
-            SDL_FPoint p2 = {(float)v2.x(), (float)v2.y()};
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-            SDL_RenderDrawLineF(renderer, p1.x, p1.y, p2.x, p2.y);
+            SDL_RenderDrawLine(renderer, static_cast<int>(v1.x()), static_cast<int>(v1.y()), 
+                static_cast<int>(v2.x()), static_cast<int>(v2.y()));
         }
     }
 }
@@ -236,14 +244,107 @@ void Scene::Pipeline::rotate_object(size_t index, double x, double y, double z)
 
 // Z-Buffer
 
-void Scene::Pipeline::apply_z_buffer(std::vector<Poly::Polyhedron> &polyhedra)
+bool Scanline_Edge_Comparison(Scanline_Edge a, Scanline_Edge b)
 {
-    // TODO
+    return a.min_y < b.min_y;
+}
+
+void apply_z_buffer_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer)
+{
+    for (int i = 0; i < poly.faces.size(); i++)
+    {
+        std::vector<Scanline_Edge> scanline_edges;
+        Poly::Segment v_seg = poly.segments[poly.faces[i].segments[0]];
+        Poly::Segment u_seg = poly.segments[poly.faces[i].segments[1]];
+        Poly::Segment e_seg = poly.segments[poly.faces[i].segments[2]];
+        Eigen::Vector3d v = poly.vertices[v_seg.p1] - poly.vertices[v_seg.p2];
+        Eigen::Vector3d u = poly.vertices[u_seg.p1] - poly.vertices[u_seg.p2];
+        if (v.isApprox(u))
+            u = poly.vertices[e_seg.p1] - poly.vertices[e_seg.p2];
+        Eigen::Vector3d n = v.cross(u);
+        double a = n(0), c = n(2);
+        double lowest_y = std::numeric_limits<double>::max();
+        for (size_t seg_j : poly.faces[i].segments)
+        {
+            Scanline_Edge edge;
+            Eigen::Vector3d p1, p2;
+            p1 = poly.vertices[poly.segments[seg_j].p1];
+            p2 = poly.vertices[poly.segments[seg_j].p2];
+            if (p1.y() == p2.y())
+                continue;
+            if (p1.y() < p2.y())
+                std::swap(p1, p2);
+            edge.max_y = p1.y();
+            edge.max_y_x = p1.x();
+            edge.max_y_z = p1.z();
+            edge.min_y = p2.y();
+            edge.min_y_x = p2.x();
+            edge.min_y_z = p2.z();
+            if (edge.min_y < lowest_y)
+                lowest_y = edge.min_y;
+            edge.x_y_delta = ((double)edge.max_y_x - (double)edge.min_y_x) / ((double)edge.max_y - (double)edge.min_y);
+            edge.z_y_delta = ((double)edge.max_y_z - (double)edge.min_y_z) / ((double)edge.max_y - (double)edge.min_y);
+            edge.slope = ((double)edge.max_y_z - (double)edge.min_y_z) / ((double)edge.max_y_x - (double)edge.min_y_x);
+            scanline_edges.push_back(edge);
+        }
+        std::sort(scanline_edges.begin(), scanline_edges.end(), Scanline_Edge_Comparison);
+        double z_delta = -(a / c);
+        int current_y = static_cast<int>(lowest_y);
+        while (!scanline_edges.empty() && current_y < 2000)
+        {
+            Scanline_Edge left_edge = scanline_edges[0];
+            Scanline_Edge right_edge = scanline_edges[1];
+            if (left_edge.max_y_x > right_edge.max_y_x)
+                std::swap(left_edge, right_edge);
+            int end_y = std::min(static_cast<int>(left_edge.max_y), static_cast<int>(right_edge.max_y));
+            double left_x = left_edge.min_y_x;
+            double right_x = right_edge.min_y_x;
+            double left_z = left_edge.min_y_z;
+            printf("Current y %i end y %i\n", current_y, end_y);
+            while (current_y++ <= end_y)
+            {
+                for (int x = static_cast<int>(left_x); x < static_cast<int>(right_x); x++)
+                {
+                    if (z_buffer(current_y, x) > left_z)
+                    {
+                        z_buffer(current_y, x) = left_z;
+                        color_buffer(current_y, x) = 0xFF00AAAA;
+                    }
+                }
+                left_x = left_x + left_edge.x_y_delta;
+                right_x = right_x + right_edge.x_y_delta;
+                left_z = left_z + left_edge.z_y_delta;
+            }
+            if (static_cast<int>(scanline_edges[1].max_y) <= current_y)
+                scanline_edges.erase(scanline_edges.begin() + 1);
+            if (static_cast<int>(scanline_edges[0].max_y) <= current_y)
+                scanline_edges.erase(scanline_edges.begin());
+        }
+    }
+}
+
+void Scene::Pipeline::apply_z_buffer(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer, SDL_Window *window)
+{
+    if (this->pipeline_altered)
+    {
+        z_buffer = Eigen::MatrixXd(screen.h, screen.w);
+        z_buffer.setConstant(std::numeric_limits<double>::infinity());
+        color_buffer = Eigen::MatrixXi(screen.h, screen.w);
+        color_buffer.setConstant(0x00000000);
+        for (int i = 0; i < polyhedra.size(); i++)
+            apply_z_buffer_to_polyhedron(polyhedra[i], z_buffer, color_buffer);
+    }
+    Eigen::Matrix<Uint32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> color_matrix = color_buffer.cast<Uint32>();
+    SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(color_matrix.data(), color_matrix.cols(), color_matrix.rows(), 32, color_matrix.cols() * 4, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_DestroyTexture(texture);
+    SDL_FreeSurface(surface);
 }
 
 // Pipeline Main Flux
 
-void Scene::Pipeline::render(SDL_Renderer *renderer)
+void Scene::Pipeline::render(SDL_Renderer *renderer, SDL_Window *window)
 {
     Eigen::Matrix4d wv_matrix = this->window_to_viewport_matrix();
     Eigen::Matrix4d projection_matrix = this->get_projection_matrix();
@@ -258,11 +359,14 @@ void Scene::Pipeline::render(SDL_Renderer *renderer)
         for (int i = 0; i < polyhedra.size(); i++)
         {
             for (int j = 0; j < polyhedra[i].vertices.size(); j++)
-                polyhedra[i].vertices[j] /= h_factors[i][j];
-;        }
+            {
+                polyhedra[i].vertices[j](0) /= h_factors[i][j];
+                polyhedra[i].vertices[j](1) /= h_factors[i][j];
+            };
+        }
     }
     if (use_z_buffer)
-        apply_z_buffer(polyhedra);
+        apply_z_buffer(polyhedra, renderer, window);
     apply_shading(polyhedra, renderer);
     this->pipeline_altered = false;
 }

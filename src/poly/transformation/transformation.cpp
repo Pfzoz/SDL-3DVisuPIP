@@ -3,7 +3,9 @@
 Eigen::Matrix4d x_rotation_matrix3d(double angle)
 {
     Eigen::Matrix4d mat;
-    mat << 1, 0, 0, 0, 0, std::cos(angle), -std::sin(angle), 0, 0, std::sin(angle), std::cos(angle), 0, 0, 0, 0, 1;
+    mat << 1, 0, 0, 0, 0, 
+        std::cos(angle), -std::sin(angle), 0, 0, 
+        std::sin(angle), std::cos(angle), 0, 0, 0, 0, 1;
     return mat;
 }
 

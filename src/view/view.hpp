@@ -36,9 +36,9 @@ private:
     // Object Vars
     std::vector<std::string> object_names;
     // Translation Vars
-    double tx, ty, tz; 
+    double tx = 0.0f, ty = 0.0f, tz = 0.0f; 
     // Rotatation Vars
-    double rx, ry, rz; 
+    double rx = 0.0f, ry = 0.0f, rz = 0.0f, radians_x = 0.0f, radians_y = 0.0f, radians_z = 0.0f; 
     bool lock_rotation_position = true;
     bool rotation_animate = false;
 
