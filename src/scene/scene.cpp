@@ -355,15 +355,17 @@ void Scene::Pipeline::apply_z_buffer(std::vector<Poly::Polyhedron> &polyhedra, S
         color_buffer.setConstant(0x00000000);
         for (int i = 0; i < polyhedra.size(); i++)
             apply_z_buffer_to_polyhedron(polyhedra[i], z_buffer, color_buffer);
+        Eigen::Matrix<Uint32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> color_matrix = color_buffer.cast<Uint32>();
+        SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(color_matrix.data(), color_matrix.cols(), color_matrix.rows(), 32, color_matrix.cols() * 4, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+        if (this->z_buffer_cache != NULL)
+            SDL_DestroyTexture(this->z_buffer_cache);
+        this->z_buffer_cache = SDL_CreateTextureFromSurface(renderer, surface);
+        SDL_FreeSurface(surface);
+        
     }
-    Eigen::Matrix<Uint32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> color_matrix = color_buffer.cast<Uint32>();
-    SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(color_matrix.data(), color_matrix.cols(), color_matrix.rows(), 32, color_matrix.cols() * 4, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_Rect dst_rect = this->screen;
     dst_rect.y -= this->screen.y;
-    SDL_RenderCopy(renderer, texture, NULL, &dst_rect);
-    SDL_DestroyTexture(texture);
-    SDL_FreeSurface(surface);
+    SDL_RenderCopy(renderer, this->z_buffer_cache, NULL, &dst_rect);
 }
 
 // Pipeline Main Flux

@@ -41,6 +41,7 @@ namespace Scene
         Shading shading = Shading::NO_SHADING;
         Camera camera;
         SDL_Rect window, screen;
+        SDL_Texture *z_buffer_cache = NULL;
         Eigen::MatrixXd z_buffer;
         Eigen::MatrixXi color_buffer;
     public:
