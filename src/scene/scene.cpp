@@ -203,8 +203,8 @@ void Scene::Pipeline::apply_wireframe_shading(std::vector<Poly::Polyhedron> poly
             Eigen::Vector3d v1 = polyhedra[i].vertices[polyhedra[i].segments[j].p1];
             Eigen::Vector3d v2 = polyhedra[i].vertices[polyhedra[i].segments[j].p2];
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-            SDL_RenderDrawLine(renderer, static_cast<int>(v1.x()), static_cast<int>(v1.y()), 
-                static_cast<int>(v2.x()), static_cast<int>(v2.y()));
+            SDL_RenderDrawLine(renderer, static_cast<int>(v1.x()), static_cast<int>(v1.y()),
+                               static_cast<int>(v2.x()), static_cast<int>(v2.y()));
         }
     }
 }
@@ -251,7 +251,7 @@ bool Scanline_Edge_Comparison(Scanline_Edge a, Scanline_Edge b)
 
 void apply_z_buffer_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer)
 {
-    for (int i = 0; i < poly.faces.size(); i++)
+    for (size_t i = 0; i < poly.faces.size(); i++)
     {
         std::vector<Scanline_Edge> scanline_edges;
         Poly::Segment v_seg = poly.segments[poly.faces[i].segments[0]];
@@ -264,6 +264,7 @@ void apply_z_buffer_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buff
         Eigen::Vector3d n = v.cross(u);
         double a = n(0), c = n(2);
         double lowest_y = std::numeric_limits<double>::max();
+        double highest_y = std::numeric_limits<double>::lowest();
         for (size_t seg_j : poly.faces[i].segments)
         {
             Scanline_Edge edge;
@@ -282,6 +283,8 @@ void apply_z_buffer_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buff
             edge.min_y_z = p2.z();
             if (edge.min_y < lowest_y)
                 lowest_y = edge.min_y;
+            if (edge.max_y > highest_y)
+                highest_y = edge.max_y;
             edge.x_y_delta = ((double)edge.max_y_x - (double)edge.min_y_x) / ((double)edge.max_y - (double)edge.min_y);
             edge.z_y_delta = ((double)edge.max_y_z - (double)edge.min_y_z) / ((double)edge.max_y - (double)edge.min_y);
             edge.slope = ((double)edge.max_y_z - (double)edge.min_y_z) / ((double)edge.max_y_x - (double)edge.min_y_x);
@@ -290,35 +293,54 @@ void apply_z_buffer_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buff
         std::sort(scanline_edges.begin(), scanline_edges.end(), Scanline_Edge_Comparison);
         double z_delta = -(a / c);
         int current_y = static_cast<int>(lowest_y);
-        while (!scanline_edges.empty() && current_y < 2000)
+        int end_y = static_cast<int>(highest_y);
+        while (current_y < end_y)
         {
-            Scanline_Edge left_edge = scanline_edges[0];
-            Scanline_Edge right_edge = scanline_edges[1];
-            if (left_edge.max_y_x > right_edge.max_y_x)
-                std::swap(left_edge, right_edge);
-            int end_y = std::min(static_cast<int>(left_edge.max_y), static_cast<int>(right_edge.max_y));
-            double left_x = left_edge.min_y_x;
-            double right_x = right_edge.min_y_x;
-            double left_z = left_edge.min_y_z;
-            printf("Current y %i end y %i\n", current_y, end_y);
-            while (current_y++ <= end_y)
+            Scanline_Edge *left_edge, *right_edge;
+            bool erased = true;
+            while (erased)
             {
-                for (int x = static_cast<int>(left_x); x < static_cast<int>(right_x); x++)
+                erased = false;
+                for (size_t j = 0; j < scanline_edges.size(); j++)
                 {
-                    if (z_buffer(current_y, x) > left_z)
+                    if (scanline_edges[j].max_y <= current_y)
                     {
-                        z_buffer(current_y, x) = left_z;
-                        color_buffer(current_y, x) = 0xFF00AAAA;
+                        scanline_edges.erase(scanline_edges.begin() + j);
+                        erased = true;
+                        break;
                     }
                 }
-                left_x = left_x + left_edge.x_y_delta;
-                right_x = right_x + right_edge.x_y_delta;
-                left_z = left_z + left_edge.z_y_delta;
             }
-            if (static_cast<int>(scanline_edges[1].max_y) <= current_y)
-                scanline_edges.erase(scanline_edges.begin() + 1);
-            if (static_cast<int>(scanline_edges[0].max_y) <= current_y)
-                scanline_edges.erase(scanline_edges.begin());
+            left_edge = &scanline_edges[0];
+            right_edge = &scanline_edges[1];
+            double start_z;
+            int start_x, end_x;
+            if (left_edge->min_y_x > right_edge->min_y_x)
+            {
+                start_x = static_cast<int>(right_edge->min_y_x);
+                end_x = static_cast<int>(left_edge->min_y_x);
+                start_z = right_edge->min_y_z;
+            }
+            else
+            {
+                start_x = static_cast<int>(left_edge->min_y_x);
+                end_x = static_cast<int>(right_edge->min_y_x);
+                start_z = left_edge->min_y_z;
+            }
+            for (size_t x = start_x; x <= end_x; x++)
+            {
+                if (z_buffer(current_y, x) > start_z)
+                {
+                    z_buffer(current_y, x) = start_z;
+                    color_buffer(current_y, x) = 0xFF00AAAA;
+                }
+                start_z += z_delta;
+            }
+            left_edge->min_y_x += left_edge->x_y_delta;
+            right_edge->min_y_x += right_edge->x_y_delta;
+            left_edge->min_y_z += left_edge->z_y_delta;
+            right_edge->min_y_z += right_edge->z_y_delta;
+            current_y++;
         }
     }
 }
@@ -337,7 +359,9 @@ void Scene::Pipeline::apply_z_buffer(std::vector<Poly::Polyhedron> &polyhedra, S
     Eigen::Matrix<Uint32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> color_matrix = color_buffer.cast<Uint32>();
     SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(color_matrix.data(), color_matrix.cols(), color_matrix.rows(), 32, color_matrix.cols() * 4, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_Rect dst_rect = this->screen;
+    dst_rect.y -= this->screen.y;
+    SDL_RenderCopy(renderer, texture, NULL, &dst_rect);
     SDL_DestroyTexture(texture);
     SDL_FreeSurface(surface);
 }
