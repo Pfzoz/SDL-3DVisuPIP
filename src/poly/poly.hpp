@@ -74,6 +74,7 @@ namespace Poly
         void translate(Eigen::Vector3d v);
         void mirror(bool x, bool y, bool z);
         void transform(Eigen::Matrix4d matrix, std::vector<double> *h_factors = nullptr);
+        void scale(float x = 1, float y = 1, float z = 1);
 
         // Repr
         void print_segments();

@@ -292,8 +292,19 @@ void View::draw_objects_menu()
                 this->pipeline.rotate_object(selected_object, radians_x / delta, radians_y / delta, radians_z / delta);
                 this->pipeline.translate_object(selected_object, x, y, z);
             }
+            ImGui::Text("Scale");
+            ImGui::InputDouble("##SX", &sx, 0.01, 0.01, "%.6f...");
+            ImGui::InputDouble("##SY", &sy, 0.01, 0.01, "%.6f...");
+            ImGui::InputDouble("##SZ", &sz, 0.01, 0.01, "%.6f...");
+            if (ImGui::Button("Scale"))
+            {
+                this->pipeline.scale_object(selected_object, sx, sy, sz);
+            }
             ImGui::Text("Material");
+            double specular_exponent = this->pipeline.get_object_specular_exponent(selected_object);
+            double pspecular_exponent = specular_exponent;
             double ac_r, ac_g, ac_b, dc_r, dc_g, dc_b, sc_r, sc_g, sc_b;
+            double pac_r, pac_g, pac_b, pdc_r, pdc_g, pdc_b, psc_r, psc_g, psc_b;
             this->pipeline.get_object_ambient_coefficients(selected_object, &ac_r, &ac_g, &ac_b);
             this->pipeline.get_object_diffuse_coefficients(selected_object, &dc_r, &dc_g, &dc_b);
             this->pipeline.get_object_specular_coefficients(selected_object, &sc_r, &sc_g, &sc_b);
@@ -315,9 +326,20 @@ void View::draw_objects_menu()
             ImGui::InputDouble("KsG", &sc_g, 0.01, 0.01, "%.6f...");
             ImGui::SameLine();
             ImGui::InputDouble("KsB", &sc_b, 0.01, 0.01, "%.6f...");
-            this->pipeline.set_object_ambient_coefficients(selected_object, ac_r, ac_g, ac_b);
-            this->pipeline.set_object_diffuse_coefficients(selected_object, dc_r, dc_g, dc_b);
-            this->pipeline.set_object_specular_coefficients(selected_object, sc_r, sc_g, sc_b);
+            ImGui::Text("Specular Exponent");
+            ImGui::InputDouble("KsE", &pspecular_exponent, 0.01, 0.01, "%.6f...");
+            this->pipeline.get_object_ambient_coefficients(selected_object, &pac_r, &pac_g, &pac_b);
+            this->pipeline.get_object_diffuse_coefficients(selected_object, &pdc_r, &pdc_g, &pdc_b);
+            this->pipeline.get_object_specular_coefficients(selected_object, &psc_r, &psc_g, &psc_b);
+            if (pspecular_exponent != specular_exponent)
+                this->pipeline.set_object_specular_exponent(selected_object, pspecular_exponent);
+            if (pac_r != ac_r || pac_g != ac_g || pac_b != ac_b || pdc_r != dc_r || pdc_g != dc_g || pdc_b != dc_b ||
+                psc_r != sc_r || psc_g != sc_g || psc_b != sc_b)
+            {
+                this->pipeline.set_object_ambient_coefficients(selected_object, ac_r, ac_g, ac_b);
+                this->pipeline.set_object_diffuse_coefficients(selected_object, dc_r, dc_g, dc_b);
+                this->pipeline.set_object_specular_coefficients(selected_object, sc_r, sc_g, sc_b);
+            }
             if (ImGui::Button("Delete"))
             {
                 this->pipeline.remove_object(selected_object);
@@ -397,6 +419,17 @@ void View::draw_shading_menu()
             this->pipeline.use_zbuffer(true);
             this->pipeline.use_shading(Scene::Shading::NO_SHADING);
         }
+        double l_x, l_y, l_z;
+        this->pipeline.get_lights_position(&l_x, &l_y, &l_z);
+        double pl_x = l_x, pl_y = l_y, pl_z = l_z;
+        ImGui::Text("Lights Position");
+        ImGui::InputDouble("X", &pl_x, 0.01, 0.01, "%.6f...");
+        ImGui::SameLine();
+        ImGui::InputDouble("Y", &pl_y, 0.01, 0.01, "%.6f...");
+        ImGui::SameLine();
+        ImGui::InputDouble("Z", &pl_z, 0.01, 0.01, "%.6f...");
+        if (pl_x != l_x || pl_y != l_y || pl_z != l_z)
+            this->pipeline.set_lights_position(pl_x, pl_y, pl_z);
         ImGui::Text("Ambient Light");
         double ia_r, ia_g, ia_b, ii_r, ii_g, ii_b;
         this->pipeline.get_ambient_light_intensity(&ia_r, &ia_g, &ia_b);

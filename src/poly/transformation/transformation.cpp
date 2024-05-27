@@ -29,3 +29,10 @@ Eigen::Matrix4d translate_matrix3d(double x, double y, double z)
     mat << 1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, 1;
     return mat;
 }
+
+Eigen::Matrix4d scale_matrix3d(double x, double y, double z)
+{
+    Eigen::Matrix4d mat;
+    mat << x, 0, 0, 0, 0, y, 0, 0, 0, 0, z, 0, 0, 0, 0, 1;
+    return mat;
+}

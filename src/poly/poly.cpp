@@ -194,6 +194,17 @@ void Poly::Polyhedron::translate(float x, float y, float z)
     }
 }
 
+void Poly::Polyhedron::scale(float x, float y, float z)
+{
+    Eigen::MatrixXd result = scale_matrix3d(x, y, z) * this->get_hmatrix();
+    for (int i = 0; i < this->vertices.size(); i++)
+    {
+        this->vertices[i](0) = result(0, i);
+        this->vertices[i](1) = result(1, i);
+        this->vertices[i](2) = result(2, i);
+    }
+}
+
 void Poly::Polyhedron::translate(Eigen::Vector3d v)
 {
     this->translate(v.x(), v.y(), v.z());

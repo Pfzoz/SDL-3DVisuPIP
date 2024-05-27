@@ -72,6 +72,7 @@ namespace Scene
         void set_srt(SDL_Rect dimensions);
         void set_ambient_light(double r, double g, double b);
         void set_lights_intensity(double r, double g, double b);
+        void set_lights_position(double x, double y, double z);
 
         // Getters
         void get_vrp(double *x, double *y, double *z);
@@ -82,6 +83,7 @@ namespace Scene
         double get_projection_distance();
         void get_ambient_light_intensity(double *r, double *g, double *b);
         void get_illumination_intensity(double *r, double *g, double *b);
+        void get_lights_position(double *x, double *y, double *z);
         SDL_Rect get_window();
         SDL_Rect get_srt();
         Projection get_projection();
@@ -95,11 +97,14 @@ namespace Scene
         void add_object(Poly::Polyhedron object);
         void remove_object(int);
         void translate_object(int, double x, double y, double z);
+        void scale_object(int, double x, double y, double z);
         void rotate_object(int, double x, double y, double z);
         uint get_object_color(int);
         void get_object_ambient_coefficients(int, double *x, double *y, double *z);
         void get_object_diffuse_coefficients(int, double *x, double *y, double *z);
         void get_object_specular_coefficients(int, double *x, double *y, double *z);
+        double get_object_specular_exponent(int);
+        void set_object_specular_exponent(int, double n);
         void set_object_ambient_coefficients(int, double x, double y, double z);
         void set_object_diffuse_coefficients(int, double x, double y, double z);
         void set_object_specular_coefficients(int, double x, double y, double z);

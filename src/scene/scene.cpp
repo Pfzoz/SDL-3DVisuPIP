@@ -310,6 +310,12 @@ void Scene::Pipeline::rotate_object(int index, double x, double y, double z)
     this->pipeline_altered = true;
 }
 
+void Scene::Pipeline::scale_object(int index, double x, double y, double z)
+{
+    scene_objects[index].scale(x, y, z);
+    this->pipeline_altered = true;
+}
+
 uint Scene::Pipeline::get_object_color(int index)
 {
     return scene_objects[index].get_color();
@@ -352,7 +358,6 @@ void Scene::Pipeline::apply_painter_clipper(std::vector<Poly::Polyhedron> &polyh
 {
     for (int i = 0; i < polyhedra.size(); i++)
     {
-        printf("Clipping\n");
         int erased_count = 0;
         for (int j = (int)polyhedra[i].faces.size() - 1; j > -1; j--)
         {
@@ -426,7 +431,7 @@ uint Scene::Pipeline::apply_lights(Poly::Polyhedron &poly, int face_index)
     Eigen::Vector3d s = this->camera.get_vrp() - center;
     Eigen::Vector3d light_vector = lights_position - center;
     light_vector.normalize();
-    Eigen::Vector3d r = (2*light_vector.dot(n)) * n - light_vector;
+    Eigen::Vector3d r = (2 * light_vector.dot(n)) * n - light_vector;
     r.normalize();
     double specular_angle = r.dot(s);
     specular_angle = pow(specular_angle, poly.get_specular_exponent());
@@ -439,14 +444,14 @@ uint Scene::Pipeline::apply_lights(Poly::Polyhedron &poly, int face_index)
         specular_angle = 0;
     if (specular_angle > 1)
         specular_angle = 1;
+    double light_distance = (lights_position - center).norm();
+    double light_attenuation = std::min(1.0, 1.0 / (light_distance * light_distance));
     double ac_r, ac_g, ac_b;
     double dc_r, dc_g, dc_b;
     double sc_r, sc_g, sc_b;
     poly.get_ambient_reflection_coefficients(&ac_r, &ac_g, &ac_b);
     poly.get_diffuse_reflection_coefficients(&dc_r, &dc_g, &dc_b);
     poly.get_specular_reflection_coefficients(&sc_r, &sc_g, &sc_b);
-    printf("I Intensities: %lf %lf %lf\n", illumination_intensity_r, illumination_intensity_g, illumination_intensity_b);
-    printf("A Intensities: %lf %lf %lf\n", ambient_light_intensity_r, ambient_light_intensity_g, ambient_light_intensity_b);
     double diffuse_illumination_r = angle * this->illumination_intensity_r * dc_r;
     double diffuse_illumination_g = angle * this->illumination_intensity_g * dc_g;
     double diffuse_illumination_b = angle * this->illumination_intensity_b * dc_b;
@@ -456,10 +461,9 @@ uint Scene::Pipeline::apply_lights(Poly::Polyhedron &poly, int face_index)
     double specular_illumination_r = this->ambient_light_intensity_r * sc_r * specular_angle;
     double specular_illumination_g = this->ambient_light_intensity_g * sc_g * specular_angle;
     double specular_illumination_b = this->ambient_light_intensity_b * sc_b * specular_angle;
-    int total_illumination_r = std::clamp((int)diffuse_illumination_r + (int)ambient_illumination_r + (int)specular_illumination_r, 0, 255);
-    int total_illumination_g = std::clamp((int)diffuse_illumination_g + (int)ambient_illumination_g + (int)specular_illumination_g, 0, 255);
-    int total_illumination_b = std::clamp((int)diffuse_illumination_b + (int)ambient_illumination_b + (int)specular_illumination_b, 0, 255);
-    printf("Result: %lf %lf %lf\n", diffuse_illumination_r, ambient_illumination_r, specular_illumination_r);
+    int total_illumination_r = std::clamp((int)(diffuse_illumination_r + light_attenuation * (ambient_illumination_r + specular_illumination_r)), 0, 255);
+    int total_illumination_g = std::clamp((int)(diffuse_illumination_g + light_attenuation * (ambient_illumination_g + specular_illumination_g)), 0, 255);
+    int total_illumination_b = std::clamp((int)(diffuse_illumination_b + light_attenuation * (ambient_illumination_b + specular_illumination_b)), 0, 255);
     uint final_color = 0xFF000000 | (total_illumination_b) << 16 | (total_illumination_g) << 8 | (total_illumination_r);
     return final_color;
 }
@@ -476,6 +480,30 @@ void Scene::Pipeline::set_ambient_light(double r, double g, double b)
     this->ambient_light_intensity_r = r;
     this->ambient_light_intensity_g = g;
     this->ambient_light_intensity_b = b;
+    this->pipeline_altered = true;
+}
+
+double Scene::Pipeline::get_object_specular_exponent(int index)
+{
+    return this->scene_objects[index].get_specular_exponent();
+}
+
+void Scene::Pipeline::set_object_specular_exponent(int index, double specular_exponent)
+{
+    this->scene_objects[index].set_specular_exponent(specular_exponent);
+    this->pipeline_altered = true;
+}
+
+void Scene::Pipeline::get_lights_position(double *x, double *y, double *z)
+{
+    *x = this->lights_position.x();
+    *y = this->lights_position.y();
+    *z = this->lights_position.z();
+}
+
+void Scene::Pipeline::set_lights_position(double x, double y, double z)
+{
+    this->lights_position = Eigen::Vector3d(x, y, z);
     this->pipeline_altered = true;
 }
 
@@ -589,23 +617,23 @@ void Scene::Pipeline::apply_z_buffer_to_polyhedron(Poly::Polyhedron poly, Eigen:
                 int end_x = active_edges[j + 1].min_y_x;
                 double start_z = active_edges[j].min_y_z;
                 double end_z = active_edges[j + 1].min_y_z;
-                if (start_x < 0 || end_x > z_buffer.cols() - 1)
-                    continue;
                 uint color = this->apply_lights(poly, i);
                 if (current_y == lowest_y || current_y == highest_y)
                     color = 0xFFFFFFFF;
-                if (z_buffer(current_y, start_x) > start_z)
+                if (start_x >= 0 && start_x < z_buffer.cols() && z_buffer(current_y, start_x) > start_z)
                 {
                     z_buffer(current_y, start_x) = start_z;
                     color_buffer(current_y, start_x) = 0xFFFFFFFF;
                 }
-                if (z_buffer(current_y, end_x) > end_z)
+                if (end_x >= 0 && end_x < z_buffer.cols() && z_buffer(current_y, end_x) > end_z)
                 {
                     z_buffer(current_y, end_x) = end_z;
                     color_buffer(current_y, end_x) = 0xFFFFFFFF;
                 }
-                for (int x = start_x + 1; x < end_x - 1; x++)
+                for (int x = start_x + 1; x < end_x - 1 && x < z_buffer.cols(); x++)
                 {
+                    if (x < 0)
+                        continue;
                     if (z_buffer(current_y, x) > start_z)
                     {
                         z_buffer(current_y, x) = start_z;

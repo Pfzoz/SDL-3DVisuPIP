@@ -44,6 +44,8 @@ private:
     double rx = 0.0f, ry = 0.0f, rz = 0.0f, radians_x = 0.0f, radians_y = 0.0f, radians_z = 0.0f; 
     bool lock_rotation_position = true;
     bool rotation_animate = false;
+    // Scale Vars
+    double sx = 1.0f, sy = 1.0f, sz = 1.0f;
     // Camera Vars
     double camera_translate_step = 1.0f, camera_rotate_step = 1.0f;
     // Light Vars
