@@ -11,13 +11,13 @@ namespace Poly
 {
     struct Segment
     {
-        size_t p1, p2;
-        size_t successor = -1, predecessor = -1;
+        int p1, p2;
+        int successor = 0, predecessor = 0;
     };
 
     struct Face
     {
-        std::vector<size_t> segments;
+        std::vector<int> segments;
     };
 
     bool operator==(const Segment &lhs, const Segment &rhs);
@@ -27,6 +27,16 @@ namespace Poly
     {
     private:
     public:
+        double ambient_reflection_coefficient_r = 0.1f;
+        double ambient_reflection_coefficient_g = 0.1f;
+        double ambient_reflection_coefficient_b = 0.1f;
+        double diffuse_recletion_coefficient_r = 0.5f;
+        double diffuse_recletion_coefficient_g = 0.5f;
+        double diffuse_recletion_coefficient_b = 0.5f;
+        double specular_reflection_coefficient_r = 0.5f;
+        double specular_reflection_coefficient_g = 0.5f;
+        double specular_reflection_coefficient_b = 0.5f;
+        double specular_exponent = 10.0f;
         std::vector<Eigen::Vector3d> vertices;
         std::vector<Segment> segments;
         std::vector<Face> faces;
@@ -34,20 +44,29 @@ namespace Poly
         // Constructors
         Polyhedron();
         Polyhedron(const std::vector<Segment> segments, const std::vector<Eigen::Vector3d> vertices, const std::vector<Face> faces);
-        Polyhedron(const Polyhedron& other);
+        Polyhedron(const Polyhedron &other);
 
         // Getters
-        Eigen::Vector3d get_vertex(size_t index);
-        Poly::Segment get_segment(size_t index);
+        Eigen::Vector3d get_vertex(int index);
+        Poly::Segment get_segment(int index);
         Eigen::MatrixXd get_matrix();
         Eigen::MatrixXd get_hmatrix();
         Eigen::Vector3d get_center();
-        size_t find_vertex(Eigen::Vector3d vertex);
-        size_t find_segment(size_t p1, size_t p2, bool ignore_direction = false);
-        size_t find_face(std::vector<size_t> segments);
+        int find_vertex(Eigen::Vector3d vertex);
+        int find_segment(int p1, int p2, bool ignore_direction = false);
+        int find_face(std::vector<int> segments);
+        void get_ambient_reflection_coefficients(double *r, double *g, double *b);
+        void get_diffuse_reflection_coefficients(double *r, double *g, double *b);
+        void get_specular_reflection_coefficients(double *r, double *g, double *b);
+        double get_specular_exponent();
+        uint get_color();
 
         // Setters
         void move_to(Eigen::Vector3d pos);
+        void set_ambient_reflection_coefficients(double r, double g, double b);
+        void set_diffuse_reflection_coefficients(double r, double g, double b);
+        void set_specular_reflection_coefficients(double r, double g, double b);
+        void set_specular_exponent(double specular_exponent);
 
         // Transformations
         void rotate(float x = 0, float y = 0, float z = 0);
@@ -57,8 +76,8 @@ namespace Poly
         void transform(Eigen::Matrix4d matrix, std::vector<double> *h_factors = nullptr);
 
         // Repr
+        void print_segments();
         void print_faces();
-
     };
 
 }

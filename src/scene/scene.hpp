@@ -36,7 +36,16 @@ namespace Scene
     class Pipeline
     {
     private:
-        bool use_z_buffer = true;
+        bool use_z_buffer = false;
+        bool use_painter_clipper = false;
+        double projection_distance = 1.0f;
+        double ambient_light_intensity_r = 0.1f;
+        double ambient_light_intensity_g = 0.1f;
+        double ambient_light_intensity_b = 0.1f;
+        double illumination_intensity_r = 0.5f;
+        double illumination_intensity_g = 0.5f;
+        double illumination_intensity_b = 0.5f;
+
         Projection projection = Projection::PARALLEL;
         Shading shading = Shading::NO_SHADING;
         Camera camera;
@@ -44,16 +53,25 @@ namespace Scene
         SDL_Texture *z_buffer_cache = NULL;
         Eigen::MatrixXd z_buffer;
         Eigen::MatrixXi color_buffer;
+        Eigen::Vector3d lights_position = Eigen::Vector3d(0.0f, 0.0f, 1.0f);
+
     public:
         std::vector<Poly::Polyhedron> scene_objects;
 
         // Setters
         void set_vrp(double x, double y, double z);
         void set_focal_point(double x, double y, double z);
+        void rotate_camera(double x, double y, double z);
+        void translate_camera(double x, double y, double z);
+        void set_projection_distance(double distance);
         void use_projection(Projection projection_mode);
         void use_shading(Shading shading_mode);
+        void use_zbuffer(bool use_z_buffer);
+        void use_painter_clip(bool use_painter_clipper);
         void set_window(SDL_Rect dimensions);
         void set_srt(SDL_Rect dimensions);
+        void set_ambient_light(double r, double g, double b);
+        void set_lights_intensity(double r, double g, double b);
 
         // Getters
         void get_vrp(double *x, double *y, double *z);
@@ -61,34 +79,36 @@ namespace Scene
         void get_camera_view_up(double *x, double *y, double *z);
         void get_camera_view_direction(double *x, double *y, double *z);
         void get_camera_view_right(double *x, double *y, double *z);
+        double get_projection_distance();
+        void get_ambient_light_intensity(double *r, double *g, double *b);
+        void get_illumination_intensity(double *r, double *g, double *b);
         SDL_Rect get_window();
         SDL_Rect get_srt();
         Projection get_projection();
         Shading get_shading();
+        bool using_z_buffer();
+        bool using_painter_clipper();
         bool is_altered();
 
         // Objects
-        void get_object_center(size_t, double *x, double *y, double *z);
+        void get_object_center(int, double *x, double *y, double *z);
         void add_object(Poly::Polyhedron object);
-        void remove_object(size_t);
-        void translate_object(size_t, double x, double y, double z);
-        void rotate_object(size_t, double x, double y, double z);
-
-        // Z-Buffer
-        void apply_z_buffer(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer, SDL_Window *window);
-
-        // Projection
-        Eigen::Matrix4d get_projection_matrix();
-
-        // Shading
-        void apply_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer);
-        void apply_wireframe_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer);
-
+        void remove_object(int);
+        void translate_object(int, double x, double y, double z);
+        void rotate_object(int, double x, double y, double z);
+        uint get_object_color(int);
+        void get_object_ambient_coefficients(int, double *x, double *y, double *z);
+        void get_object_diffuse_coefficients(int, double *x, double *y, double *z);
+        void get_object_specular_coefficients(int, double *x, double *y, double *z);
+        void set_object_ambient_coefficients(int, double x, double y, double z);
+        void set_object_diffuse_coefficients(int, double x, double y, double z);
+        void set_object_specular_coefficients(int, double x, double y, double z);
         // Render
         void render(SDL_Renderer *renderer, SDL_Window *window);
 
         // Acquire Singleton
         static Pipeline &get_pipeline();
+
     private:
         Pipeline();
 
@@ -104,6 +124,22 @@ namespace Scene
         Eigen::Matrix4d parallel_matrix();
         Eigen::Matrix4d perspective_matrix();
 
+        // Painter Algorithm
+        void apply_painter_clipper(std::vector<Poly::Polyhedron> &polyhedra);
+
+        // Lights
+        uint apply_lights(Poly::Polyhedron &poly, int face_index);
+
+        // Z-Buffer
+        void apply_z_buffer_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer);
+        void apply_z_buffer(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer, SDL_Window *window);
+
+        // Projection
+        Eigen::Matrix4d get_projection_matrix();
+
+        // Shading
+        void apply_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer);
+        void apply_wireframe_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer);
     };
 
 }

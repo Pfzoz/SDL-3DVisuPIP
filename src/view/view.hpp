@@ -31,8 +31,11 @@ private:
     bool menu_camera_open = false;
     bool menu_objects_open = true;
     bool menu_projection_open = false;
+    bool menu_shading_open = false;
     bool logical_size_follow_screen = false;
     int selected_object = 0, selected_projection = 0;
+    bool wireframe_selected = true, wireframe_z_buffer_selected = false;
+    double focal_length = 1.0f;
     // Object Vars
     std::vector<std::string> object_names;
     // Translation Vars
@@ -41,6 +44,10 @@ private:
     double rx = 0.0f, ry = 0.0f, rz = 0.0f, radians_x = 0.0f, radians_y = 0.0f, radians_z = 0.0f; 
     bool lock_rotation_position = true;
     bool rotation_animate = false;
+    // Camera Vars
+    double camera_translate_step = 1.0f, camera_rotate_step = 1.0f;
+    // Light Vars
+    double a_intensity = 0.1f;
 
     // Drawing Vars
     SDL_Window* window = NULL;
@@ -60,6 +67,7 @@ private:
     void draw_camera_menu();
     void draw_objects_menu();
     void draw_projection_menu();
+    void draw_shading_menu();
 
     // Drawing - Screen
     void drag_point(int mouse_x, int mouse_y);

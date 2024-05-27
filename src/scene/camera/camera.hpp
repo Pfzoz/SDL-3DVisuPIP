@@ -19,4 +19,6 @@ public:
     // Setters
     void set_vrp(Eigen::Vector3d vrp);
     void set_focal_point(Eigen::Vector3d focal_point);
+    void translate(float x = 0, float y = 0, float z = 0);
+    void rotate(float x = 0, float y = 0, float z = 0);
 };

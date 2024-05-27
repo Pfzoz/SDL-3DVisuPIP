@@ -69,6 +69,10 @@ void View::draw_ui()
                 {
                     this->menu_projection_open = !this->menu_projection_open;
                 }
+                if (ImGui::MenuItem("Shading Panel", nullptr, this->menu_shading_open))
+                {
+                    this->menu_shading_open = !this->menu_shading_open;
+                }
             }
             ImGui::EndMenu();
         }
@@ -90,6 +94,7 @@ void View::draw_ui()
         draw_camera_menu();
         draw_objects_menu();
         draw_projection_menu();
+        draw_shading_menu();
     }
     if (this->logical_size_follow_screen)
     {
@@ -189,6 +194,25 @@ void View::draw_camera_menu()
         {
             this->pipeline.set_focal_point(input_fx, input_fy, input_fz);
         }
+        ImGui::Text("Transform");
+        ImGui::InputDouble("Translate Step", &this->camera_translate_step, 0.01, 0.01, "%.6f...");
+        if (ImGui::Button("T(X)"))
+            this->pipeline.translate_camera(this->camera_translate_step, 0, 0);
+        ImGui::SameLine();
+        if (ImGui::Button("T(Y)"))
+            this->pipeline.translate_camera(0, this->camera_translate_step, 0);
+        ImGui::SameLine();
+        if (ImGui::Button("T(Z)"))
+            this->pipeline.translate_camera(0, 0, this->camera_translate_step);
+        ImGui::InputDouble("Rotate Step", &this->camera_rotate_step, 0.01, 0.01, "%.6f...");
+        if (ImGui::Button("R(X)"))
+            this->pipeline.rotate_camera(this->camera_rotate_step * (M_PI / 180.0), 0, 0);
+        ImGui::SameLine();
+        if (ImGui::Button("R(Y)"))
+            this->pipeline.rotate_camera(0, this->camera_rotate_step * (M_PI / 180.0), 0);
+        ImGui::SameLine();
+        if (ImGui::Button("R(Z)"))
+            this->pipeline.rotate_camera(0, 0, this->camera_rotate_step * (M_PI / 180.0));
         ImGui::Text("Camera Orientation");
         this->pipeline.get_camera_view_up(&x, &y, &z);
         ImGui::Text("v (View Up)");
@@ -268,6 +292,32 @@ void View::draw_objects_menu()
                 this->pipeline.rotate_object(selected_object, radians_x / delta, radians_y / delta, radians_z / delta);
                 this->pipeline.translate_object(selected_object, x, y, z);
             }
+            ImGui::Text("Material");
+            double ac_r, ac_g, ac_b, dc_r, dc_g, dc_b, sc_r, sc_g, sc_b;
+            this->pipeline.get_object_ambient_coefficients(selected_object, &ac_r, &ac_g, &ac_b);
+            this->pipeline.get_object_diffuse_coefficients(selected_object, &dc_r, &dc_g, &dc_b);
+            this->pipeline.get_object_specular_coefficients(selected_object, &sc_r, &sc_g, &sc_b);
+            ImGui::Text("Ambient Lighting Coefficients");
+            ImGui::InputDouble("KaR", &ac_r, 0.01, 0.01, "%.6f...");
+            ImGui::SameLine();
+            ImGui::InputDouble("KaG", &ac_g, 0.01, 0.01, "%.6f...");
+            ImGui::SameLine();
+            ImGui::InputDouble("KaB", &ac_b, 0.01, 0.01, "%.6f...");
+            ImGui::Text("Diffuse Reflection Coefficients");
+            ImGui::InputDouble("KdR", &dc_r, 0.01, 0.01, "%.6f...");
+            ImGui::SameLine();
+            ImGui::InputDouble("KdG", &dc_g, 0.01, 0.01, "%.6f...");
+            ImGui::SameLine();
+            ImGui::InputDouble("KdB", &dc_b, 0.01, 0.01, "%.6f...");
+            ImGui::Text("Specular Reflection Coefficients");
+            ImGui::InputDouble("KsR", &sc_r, 0.01, 0.01, "%.6f...");
+            ImGui::SameLine();
+            ImGui::InputDouble("KsG", &sc_g, 0.01, 0.01, "%.6f...");
+            ImGui::SameLine();
+            ImGui::InputDouble("KsB", &sc_b, 0.01, 0.01, "%.6f...");
+            this->pipeline.set_object_ambient_coefficients(selected_object, ac_r, ac_g, ac_b);
+            this->pipeline.set_object_diffuse_coefficients(selected_object, dc_r, dc_g, dc_b);
+            this->pipeline.set_object_specular_coefficients(selected_object, sc_r, sc_g, sc_b);
             if (ImGui::Button("Delete"))
             {
                 this->pipeline.remove_object(selected_object);
@@ -292,7 +342,7 @@ void View::draw_projection_menu()
         ImGui::Begin("Projection Options", &this->menu_projection_open, ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::SetWindowFontScale(1.4f);
         ImGui::SetWindowPos({0, menu_height}, ImGuiCond_FirstUseEver);
-        std::vector<const char*> projection_names_c;
+        std::vector<const char *> projection_names_c;
         projection_names_c.push_back("Parallel");
         projection_names_c.push_back("Perspective");
         int previous_selection = this->selected_projection;
@@ -303,14 +353,72 @@ void View::draw_projection_menu()
             Scene::Projection projection;
             switch (selected_projection)
             {
-                case 0:
-                    projection = Scene::Projection::PARALLEL;
-                    break;
-                case 1:
-                    projection = Scene::Projection::PERSPECTIVE;
-                    break;
+            case 0:
+                projection = Scene::Projection::PARALLEL;
+                break;
+            case 1:
+                projection = Scene::Projection::PERSPECTIVE;
+                break;
             }
             this->pipeline.use_projection(projection);
+        }
+        ImGui::Text("Focal Length");
+        double previous_focal_length = this->focal_length;
+        ImGui::InputDouble("##FOCAL", &this->focal_length, 0.01, 0.01, "%.6f...");
+        if (previous_focal_length != this->focal_length)
+        {
+            this->pipeline.set_projection_distance(this->focal_length);
+        }
+        ImGui::End();
+    }
+}
+
+void View::draw_shading_menu()
+{
+    if (this->menu_shading_open)
+    {
+        ImGui::SetNextWindowSizeConstraints({ImGui::CalcTextSize("Shading Options").x, 0.0f}, {-1, -1});
+        ImGui::Begin("Shading Options", &this->menu_shading_open, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::SetWindowFontScale(1.4f);
+        ImGui::SetWindowPos({0, menu_height}, ImGuiCond_FirstUseEver);
+        if (ImGui::Selectable("Use Normal Visibility", this->pipeline.using_painter_clipper()))
+        {
+            this->pipeline.use_painter_clip(!this->pipeline.using_painter_clipper());
+        }
+        if (ImGui::RadioButton("Wireframe",
+                               this->pipeline.get_shading() == Scene::Shading::NO_SHADING && !this->pipeline.using_z_buffer()))
+        {
+            this->pipeline.use_zbuffer(false);
+            this->pipeline.use_shading(Scene::Shading::NO_SHADING);
+        }
+        if (ImGui::RadioButton("Wireframe & Z-Buffer",
+                               this->pipeline.get_shading() == Scene::Shading::NO_SHADING && this->pipeline.using_z_buffer()))
+        {
+            this->pipeline.use_zbuffer(true);
+            this->pipeline.use_shading(Scene::Shading::NO_SHADING);
+        }
+        ImGui::Text("Ambient Light");
+        double ia_r, ia_g, ia_b, ii_r, ii_g, ii_b;
+        this->pipeline.get_ambient_light_intensity(&ia_r, &ia_g, &ia_b);
+        this->pipeline.get_illumination_intensity(&ii_r, &ii_g, &ii_b);
+        ImGui::InputDouble("IaR", &ia_r, 0.01, 0.01, "%.6f...");
+        ImGui::SameLine();
+        ImGui::InputDouble("IaG", &ia_g, 0.01, 0.01, "%.6f...");
+        ImGui::SameLine();
+        ImGui::InputDouble("IaB", &ia_b, 0.01, 0.01, "%.6f...");
+        ImGui::Text("Illumination");
+        ImGui::InputDouble("IiR", &ii_r, 0.01, 0.01, "%.6f...");
+        ImGui::SameLine();
+        ImGui::InputDouble("IiG", &ii_g, 0.01, 0.01, "%.6f...");
+        ImGui::SameLine();
+        ImGui::InputDouble("IiB", &ii_b, 0.01, 0.01, "%.6f...");
+        double pia_r, pia_g, pia_b, pii_r, pii_g, pii_b;
+        this->pipeline.get_ambient_light_intensity(&pia_r, &pia_g, &pia_b);
+        this->pipeline.get_illumination_intensity(&pii_r, &pii_g, &pii_b);
+        if (ia_r != pia_r || ia_g != pia_g || ia_b != pia_b || ii_r != pii_r || ii_g != pii_g || ii_b != pii_b)
+        {
+            this->pipeline.set_ambient_light(ia_r, ia_g, ia_b);
+            this->pipeline.set_lights_intensity(ii_r, ii_g, ii_b);
         }
         ImGui::End();
     }

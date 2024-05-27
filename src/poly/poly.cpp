@@ -11,7 +11,7 @@ bool Poly::operator==(const Poly::Face &lhs, const Poly::Face &rhs)
 {
     if (lhs.segments.size() != rhs.segments.size())
         return false;
-    for (size_t i = 0; i < lhs.segments.size(); i++)
+    for (int i = 0; i < (int)lhs.segments.size(); i++)
     {
         if (lhs.segments[i] != rhs.segments[i])
             return false;
@@ -36,15 +36,25 @@ Poly::Polyhedron::Polyhedron(const Polyhedron &other)
     this->vertices = other.vertices;
     this->segments = other.segments;
     this->faces = other.faces;
+    this->ambient_reflection_coefficient_b = other.ambient_reflection_coefficient_b;
+    this->ambient_reflection_coefficient_g = other.ambient_reflection_coefficient_g;
+    this->ambient_reflection_coefficient_r = other.ambient_reflection_coefficient_r;
+    this->diffuse_recletion_coefficient_b = other.diffuse_recletion_coefficient_b;
+    this->diffuse_recletion_coefficient_r = other.diffuse_recletion_coefficient_r;
+    this->diffuse_recletion_coefficient_g = other.diffuse_recletion_coefficient_g;
+    this->specular_reflection_coefficient_b = other.specular_reflection_coefficient_b;
+    this->specular_reflection_coefficient_g = other.specular_reflection_coefficient_g;
+    this->specular_reflection_coefficient_r = other.specular_reflection_coefficient_r;
+    this->specular_exponent = other.specular_exponent;
 }
 
 // Getters
-Eigen::Vector3d Poly::Polyhedron::get_vertex(size_t index)
+Eigen::Vector3d Poly::Polyhedron::get_vertex(int index)
 {
     return this->vertices[index];
 }
 
-Poly::Segment Poly::Polyhedron::get_segment(size_t index)
+Poly::Segment Poly::Polyhedron::get_segment(int index)
 {
     return this->segments[index];
 }
@@ -95,7 +105,63 @@ Eigen::Vector3d Poly::Polyhedron::get_center()
     return Eigen::Vector3d((min_x + max_x) / 2, (min_y + max_y) / 2, (min_z + max_z) / 2);
 }
 
+uint Poly::Polyhedron::get_color()
+{
+    return 0xfffffff;
+}
+
+void Poly::Polyhedron::get_ambient_reflection_coefficients(double *r, double *g, double *b)
+{
+    *r = this->ambient_reflection_coefficient_r;
+    *g = this->ambient_reflection_coefficient_g;
+    *b = this->ambient_reflection_coefficient_b;
+}
+
+void Poly::Polyhedron::get_diffuse_reflection_coefficients(double *r, double *g, double *b)
+{
+    *r = this->diffuse_recletion_coefficient_r;
+    *g = this->diffuse_recletion_coefficient_g;
+    *b = this->diffuse_recletion_coefficient_b;
+}
+
+void Poly::Polyhedron::get_specular_reflection_coefficients(double *r, double *g, double *b)
+{
+    *r = this->specular_reflection_coefficient_r;
+    *g = this->specular_reflection_coefficient_g;
+    *b = this->specular_reflection_coefficient_b;
+}
+
+double Poly::Polyhedron::get_specular_exponent()
+{
+    return this->specular_exponent;
+}
+
 // Setters
+void Poly::Polyhedron::set_ambient_reflection_coefficients(double r, double g, double b)
+{
+    this->ambient_reflection_coefficient_r = r;
+    this->ambient_reflection_coefficient_g = g;
+    this->ambient_reflection_coefficient_b = b;
+}
+
+void Poly::Polyhedron::set_diffuse_reflection_coefficients(double r, double g, double b)
+{
+    this->diffuse_recletion_coefficient_r = r;
+    this->diffuse_recletion_coefficient_g = g;
+    this->diffuse_recletion_coefficient_b = b;
+}
+
+void Poly::Polyhedron::set_specular_reflection_coefficients(double r, double g, double b)
+{
+    this->specular_reflection_coefficient_r = r;
+    this->specular_reflection_coefficient_g = g;
+    this->specular_reflection_coefficient_b = b;
+}
+
+void Poly::Polyhedron::set_specular_exponent(double specular_exponent)
+{
+    this->specular_exponent = specular_exponent;
+}
 
 void Poly::Polyhedron::move_to(Eigen::Vector3d pos)
 {
@@ -165,7 +231,7 @@ void Poly::Polyhedron::transform(Eigen::Matrix4d matrix, std::vector<double> *h_
     }
 }
 
-size_t Poly::Polyhedron::find_segment(size_t p1, size_t p2, bool ignore_direction)
+int Poly::Polyhedron::find_segment(int p1, int p2, bool ignore_direction)
 {
     if (!ignore_direction)
     {
@@ -198,5 +264,16 @@ void Poly::Polyhedron::print_faces()
             printf("(%f,%f,%f)", vertices[segments[faces[i].segments[j]].p2].x(), vertices[segments[faces[i].segments[j]].p2].y(), vertices[segments[faces[i].segments[j]].p2].z());
             printf(")\n");
         }
+    }
+}
+
+void Poly::Polyhedron::print_segments()
+{
+    for (int i = 0; i < segments.size(); i++)
+    {
+        printf("Segment(");
+        printf("(%f,%f,%f),", vertices[segments[i].p1].x(), vertices[segments[i].p1].y(), vertices[segments[i].p1].z());
+        printf("(%f,%f,%f)", vertices[segments[i].p2].x(), vertices[segments[i].p2].y(), vertices[segments[i].p2].z());
+        printf(")\n");
     }
 }
