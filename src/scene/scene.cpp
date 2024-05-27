@@ -73,12 +73,6 @@ void Scene::Pipeline::use_projection(Projection projection_mode)
     this->pipeline_altered = true;
 }
 
-void Scene::Pipeline::use_zbuffer(bool use_z_buffer)
-{
-    this->use_z_buffer = use_z_buffer;
-    this->pipeline_altered = true;
-}
-
 void Scene::Pipeline::use_shading(Shading shading_mode)
 {
     this->shading = shading_mode;
@@ -86,11 +80,6 @@ void Scene::Pipeline::use_shading(Shading shading_mode)
 }
 
 // Getters
-bool Scene::Pipeline::using_z_buffer()
-{
-    return this->use_z_buffer;
-}
-
 bool Scene::Pipeline::using_painter_clipper()
 {
     return this->use_painter_clipper;
@@ -238,19 +227,21 @@ Eigen::Matrix4d Scene::Pipeline::perspective_matrix()
 }
 
 // Shading
-void Scene::Pipeline::apply_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer)
+void Scene::Pipeline::apply_shading(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer)
 {
     switch (shading)
     {
     case Shading::NO_SHADING:
-        if (!this->use_z_buffer)
-            apply_wireframe_shading(polyhedra, renderer);
+        apply_wireframe_shading(polyhedra, renderer);
         break;
     case Shading::CONSTANT:
+        apply_constant_shading(polyhedra, renderer);
         break;
     case Shading::GOURAUD:
+        apply_gouraud_shading(polyhedra, renderer);
         break;
     case Shading::PHONG:
+        apply_phong_shading(polyhedra, renderer);
         break;
     default:
         printf("No shading defined!\n");
@@ -432,38 +423,39 @@ uint Scene::Pipeline::apply_lights(Poly::Polyhedron &poly, int face_index)
     Eigen::Vector3d light_vector = lights_position - center;
     light_vector.normalize();
     Eigen::Vector3d r = (2 * light_vector.dot(n)) * n - light_vector;
+    s.normalize();
     r.normalize();
     double specular_angle = r.dot(s);
+    if (specular_angle < 0)
+        specular_angle = 0;
+    if (specular_angle > 1)
+        specular_angle = 1;
     specular_angle = pow(specular_angle, poly.get_specular_exponent());
     double angle = n.dot(light_vector);
     if (angle < 0)
         angle = 0;
     if (angle > 1)
         angle = 1;
-    if (specular_angle < 0)
-        specular_angle = 0;
-    if (specular_angle > 1)
-        specular_angle = 1;
     double light_distance = (lights_position - center).norm();
-    double light_attenuation = std::min(1.0, 1.0 / (light_distance * light_distance));
+    double light_attenuation = std::min(1.0, 1.0 / (light_distance));
     double ac_r, ac_g, ac_b;
     double dc_r, dc_g, dc_b;
     double sc_r, sc_g, sc_b;
     poly.get_ambient_reflection_coefficients(&ac_r, &ac_g, &ac_b);
     poly.get_diffuse_reflection_coefficients(&dc_r, &dc_g, &dc_b);
     poly.get_specular_reflection_coefficients(&sc_r, &sc_g, &sc_b);
+    double ambient_illumination_r = this->ambient_light_intensity_r * ac_r;
+    double ambient_illumination_g = this->ambient_light_intensity_g * ac_g;
+    double ambient_illumination_b = this->ambient_light_intensity_b * ac_b;
     double diffuse_illumination_r = angle * this->illumination_intensity_r * dc_r;
     double diffuse_illumination_g = angle * this->illumination_intensity_g * dc_g;
     double diffuse_illumination_b = angle * this->illumination_intensity_b * dc_b;
-    double ambient_illumination_r = this->illumination_intensity_r * ac_r;
-    double ambient_illumination_g = this->illumination_intensity_g * ac_g;
-    double ambient_illumination_b = this->illumination_intensity_b * ac_b;
-    double specular_illumination_r = this->ambient_light_intensity_r * sc_r * specular_angle;
-    double specular_illumination_g = this->ambient_light_intensity_g * sc_g * specular_angle;
-    double specular_illumination_b = this->ambient_light_intensity_b * sc_b * specular_angle;
-    int total_illumination_r = std::clamp((int)(diffuse_illumination_r + light_attenuation * (ambient_illumination_r + specular_illumination_r)), 0, 255);
-    int total_illumination_g = std::clamp((int)(diffuse_illumination_g + light_attenuation * (ambient_illumination_g + specular_illumination_g)), 0, 255);
-    int total_illumination_b = std::clamp((int)(diffuse_illumination_b + light_attenuation * (ambient_illumination_b + specular_illumination_b)), 0, 255);
+    double specular_illumination_r = this->illumination_intensity_r * sc_r * specular_angle;
+    double specular_illumination_g = this->illumination_intensity_g * sc_g * specular_angle;
+    double specular_illumination_b = this->illumination_intensity_b * sc_b * specular_angle;
+    int total_illumination_r = std::clamp((int)(ambient_illumination_r + light_attenuation * (diffuse_illumination_r + specular_illumination_r)), 0, 255);
+    int total_illumination_g = std::clamp((int)(ambient_illumination_g + light_attenuation * (diffuse_illumination_g + specular_illumination_g)), 0, 255);
+    int total_illumination_b = std::clamp((int)(ambient_illumination_b + light_attenuation * (diffuse_illumination_b + specular_illumination_b)), 0, 255);
     uint final_color = 0xFF000000 | (total_illumination_b) << 16 | (total_illumination_g) << 8 | (total_illumination_r);
     return final_color;
 }
@@ -507,7 +499,7 @@ void Scene::Pipeline::set_lights_position(double x, double y, double z)
     this->pipeline_altered = true;
 }
 
-// Z-Buffer
+// Constant Shading
 
 bool Scanline_Edge_ComparisonY(Scanline_Edge a, Scanline_Edge b)
 {
@@ -519,7 +511,7 @@ bool Active_Edge_Comparison(Active_Edge a, Active_Edge b)
     return a.min_y_x < b.min_y_x;
 }
 
-void Scene::Pipeline::apply_z_buffer_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer)
+void Scene::Pipeline::apply_constant_shading_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer)
 {
     for (int i = 0; i < poly.faces.size(); i++)
     {
@@ -651,17 +643,16 @@ void Scene::Pipeline::apply_z_buffer_to_polyhedron(Poly::Polyhedron poly, Eigen:
     }
 }
 
-void Scene::Pipeline::apply_z_buffer(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer, SDL_Window *window)
+void Scene::Pipeline::apply_constant_shading(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer)
 {
     if (this->pipeline_altered)
     {
-        printf("Pipeline Altered\n");
         z_buffer = Eigen::MatrixXd(screen.h, screen.w);
         z_buffer.setConstant(std::numeric_limits<double>::infinity());
         color_buffer = Eigen::MatrixXi(screen.h, screen.w);
         color_buffer.setConstant(0x00000000);
         for (int i = 0; i < polyhedra.size(); i++)
-            apply_z_buffer_to_polyhedron(polyhedra[i], z_buffer, color_buffer);
+            apply_constant_shading_to_polyhedron(polyhedra[i], z_buffer, color_buffer);
         Eigen::Matrix<Uint32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> color_matrix = color_buffer.cast<Uint32>();
         SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(color_matrix.data(), color_matrix.cols(), color_matrix.rows(), 32, color_matrix.cols() * 4, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
         if (this->z_buffer_cache != NULL)
@@ -674,6 +665,260 @@ void Scene::Pipeline::apply_z_buffer(std::vector<Poly::Polyhedron> &polyhedra, S
     SDL_RenderCopy(renderer, this->z_buffer_cache, NULL, &dst_rect);
 }
 
+// Gouraud Shading
+
+// Get vertices unit normals
+
+void Scene::Pipeline::get_gouraud_illuminations(std::vector<Poly::Polyhedron> polyhedra)
+{
+    for (int i = 0; i < polyhedra.size(); i++)
+    {
+        for (int j = 0; j < polyhedra[i].vertices.size(); j++)
+        {
+            std::vector<Poly::Face> faces;
+            for (int k = 0; k < polyhedra[i].faces.size(); k++)
+            {
+                for (int l = 0; l < polyhedra[i].faces[k].segments.size(); l++)
+                {
+                    if (polyhedra[i].faces[k].segments[l] == j)
+                        faces.push_back(polyhedra[i].faces[k]);
+                }
+            }
+            Eigen::Vector3d normals_sum(0, 0, 0);
+            double normals_norm_sum = 0;
+            for (int k = 0; k < faces.size(); k++)
+            {
+                Poly::Segment v_seg = polyhedra[i].segments[faces[k].segments[0]];
+                Poly::Segment u_seg = polyhedra[i].segments[faces[k].segments[1]];
+                Eigen::Vector3d p1, p2, p3, p4;
+                p1 = polyhedra[i].vertices[v_seg.p1];
+                p2 = polyhedra[i].vertices[v_seg.p2];
+                p3 = polyhedra[i].vertices[u_seg.p1];
+                p4 = polyhedra[i].vertices[u_seg.p2];
+                Eigen::Vector3d v, u, n;
+                v = p1 - p2;
+                u = p3 - p4;
+                if (v_seg.successor == 1 && u_seg.successor == 1)
+                    n = u.cross(v);
+                else
+                    n = v.cross(u);
+                n.normalize();
+                normals_sum += n;
+                normals_norm_sum += 1;
+            }
+            Eigen::Vector3d unit_vertex_normal = normals_sum / normals_norm_sum;
+            Eigen::Vector3d center = polyhedra[i].vertices[j];
+            Eigen::Vector3d s = this->camera.get_vrp() - center;
+            Eigen::Vector3d light_vector = lights_position - center;
+            light_vector.normalize();
+            Eigen::Vector3d r = (2 * light_vector.dot(unit_vertex_normal)) * unit_vertex_normal - light_vector;
+            s.normalize();
+            r.normalize();
+            double specular_angle = r.dot(s);
+            if (specular_angle < 0)
+                specular_angle = 0;
+            if (specular_angle > 1)
+                specular_angle = 1;
+            specular_angle = pow(specular_angle, polyhedra[i].get_specular_exponent());
+            double angle = unit_vertex_normal.dot(light_vector);
+            if (angle < 0)
+                angle = 0;
+            if (angle > 1)
+                angle = 1;
+            double light_distance = (lights_position - center).norm();
+            double light_attenuation = std::min(1.0, 1.0 / (light_distance));
+            double ac_r, ac_g, ac_b;
+            double dc_r, dc_g, dc_b;
+            double sc_r, sc_g, sc_b;
+            polyhedra[i].get_ambient_reflection_coefficients(&ac_r, &ac_g, &ac_b);
+            polyhedra[i].get_diffuse_reflection_coefficients(&dc_r, &dc_g, &dc_b);
+            polyhedra[i].get_specular_reflection_coefficients(&sc_r, &sc_g, &sc_b);
+            double ambient_illumination_r = this->ambient_light_intensity_r * ac_r;
+            double ambient_illumination_g = this->ambient_light_intensity_g * ac_g;
+            double ambient_illumination_b = this->ambient_light_intensity_b * ac_b;
+            double diffuse_illumination_r = angle * this->illumination_intensity_r * dc_r;
+            double diffuse_illumination_g = angle * this->illumination_intensity_g * dc_g;
+            double diffuse_illumination_b = angle * this->illumination_intensity_b * dc_b;
+            double specular_illumination_r = this->illumination_intensity_r * sc_r * specular_angle;
+            double specular_illumination_g = this->illumination_intensity_g * sc_g * specular_angle;
+            double specular_illumination_b = this->illumination_intensity_b * sc_b * specular_angle;
+            double total_illumination_r = ambient_illumination_r + light_attenuation * (diffuse_illumination_r + specular_illumination_r);
+            double total_illumination_g = ambient_illumination_g + light_attenuation * (diffuse_illumination_g + specular_illumination_g);
+            double total_illumination_b = ambient_illumination_b + light_attenuation * (diffuse_illumination_b + specular_illumination_b);
+            this->gouraud_illuminations[i][j][0] = total_illumination_r;
+            this->gouraud_illuminations[i][j][1] = total_illumination_g;
+            this->gouraud_illuminations[i][j][2] = total_illumination_b;
+        }
+    }
+}
+
+void Scene::Pipeline::apply_gouraud_shading_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer)
+{
+    for (int i = 0; i < poly.faces.size(); i++)
+    {
+        std::vector<Scanline_Edge> scanline_edges;
+        Poly::Segment v_seg = poly.segments[poly.faces[i].segments[0]];
+        Poly::Segment u_seg = poly.segments[poly.faces[i].segments[1]];
+        Poly::Segment e_seg = poly.segments[poly.faces[i].segments[2]];
+        Eigen::Vector3d v = poly.vertices[v_seg.p1] - poly.vertices[v_seg.p2];
+        Eigen::Vector3d u = poly.vertices[u_seg.p1] - poly.vertices[u_seg.p2];
+        if (v.isApprox(u))
+            u = poly.vertices[e_seg.p1] - poly.vertices[e_seg.p2];
+        Eigen::Vector3d n = v.cross(u);
+        double a = n(0), c = n(2);
+        double z_delta = -(a / c);
+        double lowest_y = std::numeric_limits<double>::max();
+        double highest_y = std::numeric_limits<double>::lowest();
+        for (int seg_j : poly.faces[i].segments)
+        {
+            Scanline_Edge edge;
+            Eigen::Vector3d p1, p2;
+            p1 = poly.vertices[poly.segments[seg_j].p1];
+            p2 = poly.vertices[poly.segments[seg_j].p2];
+            if (p2.y() == p1.y())
+            {
+                int highest_x = (int)p2.x();
+                int lowest_x = (int)p1.x();
+                int const_y = (int)p1.y();
+                double start_z = p1.z();
+                if (p1.x() > highest_x)
+                {
+                    std::swap(highest_x, lowest_x);
+                    start_z = p2.z();
+                }
+                for (int j = lowest_x; j <= highest_x; j++)
+                {
+                    if (z_buffer(const_y, j) > start_z)
+                    {
+                        z_buffer(const_y, j) = start_z;
+                        color_buffer(const_y, j) = poly.get_color();
+                    }
+                    start_z += z_delta;
+                }
+                continue;
+            }
+            if (p1.y() < p2.y())
+                std::swap(p1, p2);
+            edge.max_y = (int)p1.y();
+            edge.max_y_x = (int)p1.x();
+            edge.max_y_z = p1.z();
+            edge.min_y = (int)p2.y();
+            edge.min_y_x = (int)p2.x();
+            edge.min_y_z = p2.z();
+            if (edge.min_y < lowest_y)
+                lowest_y = edge.min_y;
+            if (edge.max_y > highest_y)
+                highest_y = edge.max_y;
+            edge.z_y_delta = ((double)edge.max_y_z - (double)edge.min_y_z) / ((double)edge.max_y - (double)edge.min_y);
+            edge.x_y_delta = ((double)edge.max_y_x - (double)edge.min_y_x) / ((double)edge.max_y - (double)edge.min_y);
+            scanline_edges.push_back(edge);
+        }
+        std::sort(scanline_edges.begin(), scanline_edges.end(), Scanline_Edge_ComparisonY);
+        int current_y = (int)(lowest_y);
+        int end_y = (int)(highest_y);
+        std::vector<Active_Edge> active_edges;
+        while (current_y <= end_y && current_y < z_buffer.rows())
+        {
+            for (int j = (int)(scanline_edges.size()) - 1; j > -1; j--)
+            {
+                if (scanline_edges[j].min_y == current_y)
+                {
+                    Active_Edge active_edge{(float)scanline_edges[j].min_y_x,
+                                            (float)scanline_edges[j].min_y_z,
+                                            (float)scanline_edges[j].max_y,
+                                            (float)scanline_edges[j].min_y,
+                                            (float)scanline_edges[j].x_y_delta,
+                                            (float)scanline_edges[j].z_y_delta};
+                    active_edges.push_back(active_edge);
+                    scanline_edges.erase(scanline_edges.begin() + j);
+                }
+            }
+            for (int j = active_edges.size() - 1; j > -1; j--)
+            {
+                if (active_edges[j].y_max == current_y)
+                    active_edges.erase(active_edges.begin() + j);
+            }
+            std::sort(active_edges.begin(), active_edges.end(), Active_Edge_Comparison);
+            if (current_y < 0)
+            {
+                current_y++;
+                continue;
+            }
+            for (int j = 0; j < (int)(active_edges.size()) - 1; j += 2)
+            {
+                int start_x = active_edges[j].min_y_x;
+                int end_x = active_edges[j + 1].min_y_x;
+                double start_z = active_edges[j].min_y_z;
+                double end_z = active_edges[j + 1].min_y_z;
+                uint color = this->apply_lights(poly, i);
+                if (current_y == lowest_y || current_y == highest_y)
+                    color = 0xFFFFFFFF;
+                if (start_x >= 0 && start_x < z_buffer.cols() && z_buffer(current_y, start_x) > start_z)
+                {
+                    z_buffer(current_y, start_x) = start_z;
+                    color_buffer(current_y, start_x) = 0xFFFFFFFF;
+                }
+                if (end_x >= 0 && end_x < z_buffer.cols() && z_buffer(current_y, end_x) > end_z)
+                {
+                    z_buffer(current_y, end_x) = end_z;
+                    color_buffer(current_y, end_x) = 0xFFFFFFFF;
+                }
+                for (int x = start_x + 1; x < end_x - 1 && x < z_buffer.cols(); x++)
+                {
+                    if (x < 0)
+                        continue;
+                    if (z_buffer(current_y, x) > start_z)
+                    {
+                        z_buffer(current_y, x) = start_z;
+                        color_buffer(current_y, x) = color;
+                    }
+                    start_z += z_delta;
+                }
+                active_edges[j].min_y_x += active_edges[j].m_inversed;
+                active_edges[j + 1].min_y_x += active_edges[j + 1].m_inversed;
+                active_edges[j].min_y_z += active_edges[j].m_z_inversed;
+                active_edges[j + 1].min_y_z += active_edges[j + 1].m_z_inversed;
+            }
+            current_y++;
+        }
+    }
+}
+
+void Scene::Pipeline::apply_gouraud_shading(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer)
+{
+    if (this->pipeline_altered)
+    {
+        get_gouraud_illuminations(polyhedra);
+        z_buffer = Eigen::MatrixXd(screen.h, screen.w);
+        z_buffer.setConstant(std::numeric_limits<double>::infinity());
+        color_buffer = Eigen::MatrixXi(screen.h, screen.w);
+        color_buffer.setConstant(0x00000000);
+        for (int i = 0; i < polyhedra.size(); i++)
+            apply_gouraud_shading_to_polyhedron(polyhedra[i], z_buffer, color_buffer);
+        Eigen::Matrix<Uint32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> color_matrix = color_buffer.cast<Uint32>();
+        SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(color_matrix.data(), color_matrix.cols(), color_matrix.rows(), 32, color_matrix.cols() * 4, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+        if (this->z_buffer_cache != NULL)
+            SDL_DestroyTexture(this->z_buffer_cache);
+        this->z_buffer_cache = SDL_CreateTextureFromSurface(renderer, surface);
+        SDL_FreeSurface(surface);
+    }
+    SDL_Rect dst_rect = this->screen;
+    dst_rect.y -= this->screen.y;
+    SDL_RenderCopy(renderer, this->z_buffer_cache, NULL, &dst_rect);
+}
+
+void Scene::Pipeline::apply_phong_shading_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer)
+{
+
+}
+
+void Scene::Pipeline::apply_phong_shading(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer)
+{
+    
+}
+
+
+
 // Pipeline Main Flux
 
 void Scene::Pipeline::render(SDL_Renderer *renderer, SDL_Window *window)
@@ -682,6 +927,8 @@ void Scene::Pipeline::render(SDL_Renderer *renderer, SDL_Window *window)
     Eigen::Matrix4d projection_matrix = this->get_projection_matrix();
     Eigen::Matrix4d src_matrix = this->camera.get_src_matrix();
     Eigen::Matrix4d sru_srt_matrix = wv_matrix * projection_matrix * src_matrix;
+    Eigen::Vector4d h_lights_position(this->src_lights_position(0), this->src_lights_position(1), this->src_lights_position(2), 0.0);
+    src_lights_position = (src_matrix * h_lights_position).col(0).head(3);
     std::vector<Poly::Polyhedron> polyhedra = this->scene_objects;
     if (use_painter_clipper)
         apply_painter_clipper(polyhedra);
@@ -707,8 +954,6 @@ void Scene::Pipeline::render(SDL_Renderer *renderer, SDL_Window *window)
                 polyhedra[i].vertices[j](2) = this->scene_objects[i].vertices[j](0);
         }
     }
-    if (use_z_buffer)
-        apply_z_buffer(polyhedra, renderer, window);
     apply_shading(polyhedra, renderer);
     this->pipeline_altered = false;
 }

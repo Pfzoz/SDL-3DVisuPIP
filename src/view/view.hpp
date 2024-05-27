@@ -50,6 +50,7 @@ private:
     double camera_translate_step = 1.0f, camera_rotate_step = 1.0f;
     // Light Vars
     double a_intensity = 0.1f;
+    bool infinite_light_distance = false;
 
     // Drawing Vars
     SDL_Window* window = NULL;

@@ -408,21 +408,21 @@ void View::draw_shading_menu()
             this->pipeline.use_painter_clip(!this->pipeline.using_painter_clipper());
         }
         if (ImGui::RadioButton("Wireframe",
-                               this->pipeline.get_shading() == Scene::Shading::NO_SHADING && !this->pipeline.using_z_buffer()))
+                               this->pipeline.get_shading() == Scene::Shading::NO_SHADING))
         {
-            this->pipeline.use_zbuffer(false);
             this->pipeline.use_shading(Scene::Shading::NO_SHADING);
         }
-        if (ImGui::RadioButton("Wireframe & Z-Buffer",
-                               this->pipeline.get_shading() == Scene::Shading::NO_SHADING && this->pipeline.using_z_buffer()))
+        if (ImGui::RadioButton("Constant Shading",
+                               this->pipeline.get_shading() == Scene::Shading::CONSTANT))
         {
-            this->pipeline.use_zbuffer(true);
-            this->pipeline.use_shading(Scene::Shading::NO_SHADING);
+            this->pipeline.use_shading(Scene::Shading::CONSTANT);
         }
         double l_x, l_y, l_z;
         this->pipeline.get_lights_position(&l_x, &l_y, &l_z);
         double pl_x = l_x, pl_y = l_y, pl_z = l_z;
         ImGui::Text("Lights Position");
+        bool infinite_pos_flag = this->infinite_light_distance;
+        ImGui::Selectable("Infinite", &this->infinite_light_distance);
         ImGui::InputDouble("X", &pl_x, 0.01, 0.01, "%.6f...");
         ImGui::SameLine();
         ImGui::InputDouble("Y", &pl_y, 0.01, 0.01, "%.6f...");
@@ -430,6 +430,13 @@ void View::draw_shading_menu()
         ImGui::InputDouble("Z", &pl_z, 0.01, 0.01, "%.6f...");
         if (pl_x != l_x || pl_y != l_y || pl_z != l_z)
             this->pipeline.set_lights_position(pl_x, pl_y, pl_z);
+        if (infinite_pos_flag != this->infinite_light_distance && this->infinite_light_distance)
+        {
+            double inf = std::numeric_limits<double>::infinity();
+            this->pipeline.set_lights_position(inf, inf, inf);
+        }
+        else if (infinite_pos_flag != this->infinite_light_distance && !this->infinite_light_distance)
+            this->pipeline.set_lights_position(0, 0, 0);
         ImGui::Text("Ambient Light");
         double ia_r, ia_g, ia_b, ii_r, ii_g, ii_b;
         this->pipeline.get_ambient_light_intensity(&ia_r, &ia_g, &ia_b);

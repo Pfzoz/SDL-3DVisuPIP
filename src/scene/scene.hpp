@@ -36,7 +36,6 @@ namespace Scene
     class Pipeline
     {
     private:
-        bool use_z_buffer = false;
         bool use_painter_clipper = false;
         double projection_distance = 1.0f;
         double ambient_light_intensity_r = 0.1f;
@@ -54,6 +53,8 @@ namespace Scene
         Eigen::MatrixXd z_buffer;
         Eigen::MatrixXi color_buffer;
         Eigen::Vector3d lights_position = Eigen::Vector3d(0.0f, 0.0f, 1.0f);
+        Eigen::Vector3d src_lights_position;
+        std::vector<std::vector<double[3]>> gouraud_illuminations;
 
     public:
         std::vector<Poly::Polyhedron> scene_objects;
@@ -66,7 +67,6 @@ namespace Scene
         void set_projection_distance(double distance);
         void use_projection(Projection projection_mode);
         void use_shading(Shading shading_mode);
-        void use_zbuffer(bool use_z_buffer);
         void use_painter_clip(bool use_painter_clipper);
         void set_window(SDL_Rect dimensions);
         void set_srt(SDL_Rect dimensions);
@@ -88,7 +88,6 @@ namespace Scene
         SDL_Rect get_srt();
         Projection get_projection();
         Shading get_shading();
-        bool using_z_buffer();
         bool using_painter_clipper();
         bool is_altered();
 
@@ -135,16 +134,20 @@ namespace Scene
         // Lights
         uint apply_lights(Poly::Polyhedron &poly, int face_index);
 
-        // Z-Buffer
-        void apply_z_buffer_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer);
-        void apply_z_buffer(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer, SDL_Window *window);
-
         // Projection
         Eigen::Matrix4d get_projection_matrix();
 
         // Shading
-        void apply_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer);
+        void apply_shading(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer);
+        void apply_constant_shading_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer);
+        void apply_constant_shading(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer);
+        void apply_gouraud_shading_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer);
+        void apply_gouraud_shading(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer);
+        void apply_phong_shading_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer);
+        void apply_phong_shading(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer);
         void apply_wireframe_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer);
+
+        void get_gouraud_illuminations(std::vector<Poly::Polyhedron> polyhedra);
     };
 
 }
