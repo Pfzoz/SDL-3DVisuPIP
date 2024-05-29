@@ -352,20 +352,15 @@ void Scene::Pipeline::apply_painter_clipper(std::vector<Poly::Polyhedron> &polyh
     {
         for (int j = (int)polyhedra[i].faces.size() - 1; j > -1; j--)
         {
-            Poly::Segment v_seg = polyhedra[i].segments[polyhedra[i].faces[j].segments[0]];
-            Poly::Segment u_seg = polyhedra[i].segments[polyhedra[i].faces[j].segments[1]];
-            Eigen::Vector3d p1, p2, p3, p4;
-            p1 = polyhedra[i].vertices[v_seg.p1];
-            p2 = polyhedra[i].vertices[v_seg.p2];
-            p3 = polyhedra[i].vertices[u_seg.p1];
-            p4 = polyhedra[i].vertices[u_seg.p2];
-            Eigen::Vector3d v, u, n;
-            v = p1 - p2;
-            u = p3 - p4;
-            if (v_seg.successor == 1 && u_seg.successor == 1)
-                n = u.cross(v);
-            else
-                n = v.cross(u);
+            int i_p1, i_p2, i_p3;
+            i_p1 = polyhedra[i].faces[j].p1;
+            i_p2 = polyhedra[i].faces[j].p2;
+            i_p3 = polyhedra[i].faces[j].p3;
+            Eigen::Vector3d p1 = polyhedra[i].vertices[i_p1];
+            Eigen::Vector3d p2 = polyhedra[i].vertices[i_p2];
+            Eigen::Vector3d p3 = polyhedra[i].vertices[i_p3];
+            Eigen::Vector3d v = p1 - p2, u = p3 - p2, n;
+            n = u.cross(v);
             n.normalize();
             Eigen::Vector3d vrp = camera.get_vrp();
             double a = n(0), b = n(1), c = n(2);

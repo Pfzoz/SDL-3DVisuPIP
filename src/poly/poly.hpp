@@ -19,6 +19,8 @@ namespace Poly
     {
         std::vector<int> segments;
         bool draw_flag = true;
+        Eigen::Vector3d normal;
+        int p1, p2, p3;
     };
 
     bool operator==(const Segment &lhs, const Segment &rhs);
