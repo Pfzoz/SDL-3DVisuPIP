@@ -18,6 +18,7 @@ namespace Poly
     struct Face
     {
         std::vector<int> segments;
+        bool draw_flag = true;
     };
 
     bool operator==(const Segment &lhs, const Segment &rhs);
@@ -35,8 +36,8 @@ namespace Poly
         double diffuse_recletion_coefficient_b = 0.5f;
         double specular_reflection_coefficient_r = 0.5f;
         double specular_reflection_coefficient_g = 0.5f;
-        double specular_reflection_coefficient_b = 0.5f;
-        double specular_exponent = 10.0f;
+        double specular_reflection_coefficient_b = 0.5f;       
+        double specular_exponent = 2.15f;
         std::vector<Eigen::Vector3d> vertices;
         std::vector<Segment> segments;
         std::vector<Face> faces;

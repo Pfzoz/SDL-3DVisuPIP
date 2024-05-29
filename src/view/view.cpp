@@ -129,14 +129,16 @@ void View::draw_generatrix_menu()
             this->wireframe_slices_amount = 3;
         if (ImGui::Button("Create Wireframe (Send to 3D)", {ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 1.25f}))
         {
-            Poly::Polyhedron wireframe = canvas.get_wireframe(this->wireframe_slices_amount);
-            // wireframe.print_faces();
-            pipeline.add_object(wireframe);
-            object_names.clear();
-            for (int i = 0; i < pipeline.scene_objects.size(); i++)
+            if (canvas.points.size() > 0)
             {
-                std::string object_name = "Object " + std::to_string(i);
-                object_names.push_back(object_name);
+                Poly::Polyhedron wireframe = canvas.get_wireframe(this->wireframe_slices_amount);
+                pipeline.add_object(wireframe);
+                object_names.clear();
+                for (int i = 0; i < pipeline.scene_objects.size(); i++)
+                {
+                    std::string object_name = "Object " + std::to_string(i);
+                    object_names.push_back(object_name);
+                }
             }
         }
         if (ImGui::Button("Clear Points", {ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * 1.25f}))
@@ -416,6 +418,14 @@ void View::draw_shading_menu()
                                this->pipeline.get_shading() == Scene::Shading::CONSTANT))
         {
             this->pipeline.use_shading(Scene::Shading::CONSTANT);
+        }
+        if (ImGui::RadioButton("Gouraud Shading", this->pipeline.get_shading() == Scene::Shading::GOURAUD))
+        {
+            this->pipeline.use_shading(Scene::Shading::GOURAUD);
+        }
+        if (ImGui::RadioButton("Phong Shading", this->pipeline.get_shading() == Scene::Shading::PHONG))
+        {
+            this->pipeline.use_shading(Scene::Shading::PHONG);
         }
         double l_x, l_y, l_z;
         this->pipeline.get_lights_position(&l_x, &l_y, &l_z);

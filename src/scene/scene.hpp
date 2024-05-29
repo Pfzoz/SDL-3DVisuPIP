@@ -15,9 +15,6 @@ namespace Scene
     enum class Projection
     {
         PERSPECTIVE,
-        ORTHOGRAPHIC_X,
-        ORTHOGRAPHIC_Y,
-        ORTHOGRAPHIC_Z,
         PARALLEL
     };
 
@@ -49,12 +46,13 @@ namespace Scene
         Shading shading = Shading::NO_SHADING;
         Camera camera;
         SDL_Rect window, screen;
-        SDL_Texture *z_buffer_cache = NULL;
+        SDL_Texture *color_shader_cache = NULL;
         Eigen::MatrixXd z_buffer;
         Eigen::MatrixXi color_buffer;
         Eigen::Vector3d lights_position = Eigen::Vector3d(0.0f, 0.0f, 1.0f);
-        Eigen::Vector3d src_lights_position;
-        std::vector<std::vector<double[3]>> gouraud_illuminations;
+        std::vector<std::vector<uint>> constant_shadings;
+        std::vector<std::vector<std::vector<double>>> gouraud_illuminations;
+        std::vector<std::vector<Eigen::Vector3d>> phong_normals;
 
     public:
         std::vector<Poly::Polyhedron> scene_objects;
@@ -122,9 +120,6 @@ namespace Scene
         Eigen::Matrix4d window_to_viewport_matrix();
 
         // Projections
-        Eigen::Matrix4d ortographic_x_matrix();
-        Eigen::Matrix4d ortographic_y_matrix();
-        Eigen::Matrix4d ortographic_z_matrix();
         Eigen::Matrix4d parallel_matrix();
         Eigen::Matrix4d perspective_matrix();
 
@@ -132,22 +127,25 @@ namespace Scene
         void apply_painter_clipper(std::vector<Poly::Polyhedron> &polyhedra);
 
         // Lights
-        uint apply_lights(Poly::Polyhedron &poly, int face_index);
+        uint calculate_lights(Poly::Polyhedron &poly, Eigen::Vector3d n, Eigen::Vector3d s, Eigen::Vector3d light_vector);
+        uint calculate_lights_simplified(Poly::Polyhedron &poly, Eigen::Vector3d n, Eigen::Vector3d s, Eigen::Vector3d light_vector, double specular_angle);
 
         // Projection
         Eigen::Matrix4d get_projection_matrix();
 
         // Shading
         void apply_shading(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer);
-        void apply_constant_shading_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer);
+        void apply_constant_shading_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer, int poly_index);
         void apply_constant_shading(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer);
-        void apply_gouraud_shading_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer);
+        void apply_gouraud_shading_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer, int poly_index);
         void apply_gouraud_shading(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer);
-        void apply_phong_shading_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer);
+        void apply_phong_shading_to_polyhedron(Poly::Polyhedron poly, Eigen::MatrixXd &z_buffer, Eigen::MatrixXi &color_buffer, int poly_index);
         void apply_phong_shading(std::vector<Poly::Polyhedron> &polyhedra, SDL_Renderer *renderer);
         void apply_wireframe_shading(std::vector<Poly::Polyhedron> polyhedra, SDL_Renderer *renderer);
 
-        void get_gouraud_illuminations(std::vector<Poly::Polyhedron> polyhedra);
+        void calculate_constant_shading(std::vector<Poly::Polyhedron> &polyhedra);
+        void calculate_gouraud_shadings(std::vector<Poly::Polyhedron> &polyhedra);
+        void calculate_phong_shadings(std::vector<Poly::Polyhedron> &polyhedra);
     };
 
 }
