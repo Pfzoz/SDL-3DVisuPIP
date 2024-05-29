@@ -352,13 +352,9 @@ void Scene::Pipeline::apply_painter_clipper(std::vector<Poly::Polyhedron> &polyh
     {
         for (int j = (int)polyhedra[i].faces.size() - 1; j > -1; j--)
         {
-            int i_p1, i_p2, i_p3;
-            i_p1 = polyhedra[i].faces[j].p1;
-            i_p2 = polyhedra[i].faces[j].p2;
-            i_p3 = polyhedra[i].faces[j].p3;
-            Eigen::Vector3d p1 = polyhedra[i].vertices[i_p1];
-            Eigen::Vector3d p2 = polyhedra[i].vertices[i_p2];
-            Eigen::Vector3d p3 = polyhedra[i].vertices[i_p3];
+            Eigen::Vector3d p1 = polyhedra[i].vertices[polyhedra[i].faces[j].p1];
+            Eigen::Vector3d p2 = polyhedra[i].vertices[polyhedra[i].faces[j].p2];
+            Eigen::Vector3d p3 = polyhedra[i].vertices[polyhedra[i].faces[j].p3];
             Eigen::Vector3d v = p1 - p2, u = p3 - p2, n;
             n = u.cross(v);
             n.normalize();
@@ -404,7 +400,6 @@ uint Scene::Pipeline::calculate_lights(Poly::Polyhedron &poly, Eigen::Vector3d n
         angle = 0;
     if (angle > 1)
         angle = 1;
-    double light_attenuation = 1;
     double ac_r, ac_g, ac_b;
     double dc_r, dc_g, dc_b;
     double sc_r, sc_g, sc_b;
@@ -432,6 +427,8 @@ uint Scene::Pipeline::calculate_lights_simplified(Poly::Polyhedron &poly, Eigen:
     double angle = n.dot(light_vector);
     if (angle < 0)
         angle = 0;
+    if (angle > 1)
+        angle = 1;
     double ac_r, ac_g, ac_b;
     double dc_r, dc_g, dc_b;
     double sc_r, sc_g, sc_b;
@@ -514,14 +511,12 @@ void Scene::Pipeline::apply_constant_shading_to_polyhedron(Poly::Polyhedron poly
         if (poly.faces[i].draw_flag == false)
             continue;
         std::vector<Scanline_Edge> scanline_edges;
-        Poly::Segment v_seg = poly.segments[poly.faces[i].segments[0]];
-        Poly::Segment u_seg = poly.segments[poly.faces[i].segments[1]];
-        Poly::Segment e_seg = poly.segments[poly.faces[i].segments[2]];
-        Eigen::Vector3d v = poly.vertices[v_seg.p1] - poly.vertices[v_seg.p2];
-        Eigen::Vector3d u = poly.vertices[u_seg.p1] - poly.vertices[u_seg.p2];
-        if (v.isApprox(u))
-            u = poly.vertices[e_seg.p1] - poly.vertices[e_seg.p2];
-        Eigen::Vector3d n = v.cross(u);
+        Eigen::Vector3d p1, p2, p3;
+        p1 = poly.vertices[poly.faces[i].p1];
+        p2 = poly.vertices[poly.faces[i].p2];
+        p3 = poly.vertices[poly.faces[i].p3];
+        Eigen::Vector3d v = p1 - p2, u = p3 - p2;
+        Eigen::Vector3d n = u.cross(v);
         double a = n(0), c = n(2);
         double z_delta = -(a / c);
         double lowest_y = std::numeric_limits<double>::max();
@@ -613,7 +608,6 @@ void Scene::Pipeline::apply_constant_shading(std::vector<Poly::Polyhedron> &poly
 {
     if (this->pipeline_altered)
     {
-        // calculate_constant_shading(polyhedra);
         z_buffer = Eigen::MatrixXd(screen.h, screen.w);
         z_buffer.setConstant(std::numeric_limits<double>::infinity());
         color_buffer = Eigen::MatrixXi(screen.h, screen.w);
@@ -632,40 +626,32 @@ void Scene::Pipeline::apply_constant_shading(std::vector<Poly::Polyhedron> &poly
     SDL_RenderCopy(renderer, this->color_shader_cache, NULL, &dst_rect);
 }
 
-// Gouraud Shading
-
-// Get vertices unit normals
+// Constant Calculus
 
 void Scene::Pipeline::calculate_constant_shading(std::vector<Poly::Polyhedron> &polyhedra)
-{
+{   
     this->constant_shadings.clear();
     for (int i = 0; i < polyhedra.size(); i++)
     {
         std::vector<uint> faces_illuminations;
         for (int j = 0; j < polyhedra[i].faces.size(); j++)
         {
-            Poly::Segment v_seg = polyhedra[i].segments[polyhedra[i].faces[j].segments[0]];
-            Poly::Segment u_seg = polyhedra[i].segments[polyhedra[i].faces[j].segments[1]];
-            Eigen::Vector3d p1, p2, p3, p4;
-            p1 = polyhedra[i].vertices[v_seg.p1];
-            p2 = polyhedra[i].vertices[v_seg.p2];
-            p3 = polyhedra[i].vertices[u_seg.p1];
-            p4 = polyhedra[i].vertices[u_seg.p2];
+            Eigen::Vector3d p1, p2, p3;
+            p1 = polyhedra[i].vertices[polyhedra[i].faces[j].p1];
+            p2 = polyhedra[i].vertices[polyhedra[i].faces[j].p2];
+            p3 = polyhedra[i].vertices[polyhedra[i].faces[j].p3];
             Eigen::Vector3d v, u, n;
             v = p1 - p2;
-            u = p3 - p4;
-            if (v_seg.successor == 1 && u_seg.successor == 1)
-                n = u.cross(v);
-            else
-                n = v.cross(u);
+            u = p3 - p2;
+            n = u.cross(v);
             n.normalize();
             Eigen::Vector3d vrp = camera.get_vrp();
             double a = std::abs(n(0)), b = std::abs(n(1)), c = std::abs(n(2));
             Eigen::Vector3d center = p2 + a * (p1 - p2) + b * (p3 - p2);
             Eigen::Vector3d s = vrp - center;
+            s.normalize();
             Eigen::Vector3d light_vector = lights_position - center;
             light_vector.normalize();
-            s.normalize();
             uint color = calculate_lights(polyhedra[i], n, s, light_vector);
             faces_illuminations.push_back(color);
         }
@@ -699,20 +685,14 @@ void Scene::Pipeline::calculate_gouraud_shadings(std::vector<Poly::Polyhedron> &
             Eigen::Vector3d normals_sum(0, 0, 0);
             for (int k = 0; k < faces.size(); k++)
             {
-                Poly::Segment v_seg = polyhedra[i].segments[faces[k].segments[0]];
-                Poly::Segment u_seg = polyhedra[i].segments[faces[k].segments[1]];
-                Eigen::Vector3d p1, p2, p3, p4;
-                p1 = polyhedra[i].vertices[v_seg.p1];
-                p2 = polyhedra[i].vertices[v_seg.p2];
-                p3 = polyhedra[i].vertices[u_seg.p1];
-                p4 = polyhedra[i].vertices[u_seg.p2];
+                Eigen::Vector3d p1, p2, p3;
+                p1 = polyhedra[i].vertices[polyhedra[i].faces[k].p1];
+                p2 = polyhedra[i].vertices[polyhedra[i].faces[k].p2];
+                p3 = polyhedra[i].vertices[polyhedra[i].faces[k].p3];
                 Eigen::Vector3d v, u, n;
                 v = p1 - p2;
-                u = p3 - p4;
-                if (v_seg.successor == 1 && u_seg.successor == 1)
-                    n = u.cross(v);
-                else
-                    n = v.cross(u);
+                u = p3 - p2;
+                n = u.cross(v);
                 n.normalize();
                 normals_sum += n;
             }
@@ -787,20 +767,14 @@ void Scene::Pipeline::calculate_phong_shadings(std::vector<Poly::Polyhedron> &po
             Eigen::Vector3d normals_sum(0, 0, 0);
             for (int k = 0; k < faces.size(); k++)
             {
-                Poly::Segment v_seg = polyhedra[i].segments[faces[k].segments[0]];
-                Poly::Segment u_seg = polyhedra[i].segments[faces[k].segments[1]];
-                Eigen::Vector3d p1, p2, p3, p4;
-                p1 = polyhedra[i].vertices[v_seg.p1];
-                p2 = polyhedra[i].vertices[v_seg.p2];
-                p3 = polyhedra[i].vertices[u_seg.p1];
-                p4 = polyhedra[i].vertices[u_seg.p2];
+                Eigen::Vector3d p1, p2, p3;
+                p1 = polyhedra[i].vertices[polyhedra[i].faces[k].p1];
+                p2 = polyhedra[i].vertices[polyhedra[i].faces[k].p2];
+                p3 = polyhedra[i].vertices[polyhedra[i].faces[k].p3];
                 Eigen::Vector3d v, u, n;
                 v = p1 - p2;
-                u = p3 - p4;
-                if (v_seg.successor == 1 && u_seg.successor == 1)
-                    n = u.cross(v);
-                else
-                    n = v.cross(u);
+                u = p3 - p2;
+                n = u.cross(v);
                 n.normalize();
                 normals_sum += n;
             }
@@ -819,14 +793,14 @@ void Scene::Pipeline::apply_gouraud_shading_to_polyhedron(Poly::Polyhedron poly,
         if (poly.faces[i].draw_flag == false)
             continue;
         std::vector<Scanline_Edge> scanline_edges;
-        Poly::Segment v_seg = poly.segments[poly.faces[i].segments[0]];
-        Poly::Segment u_seg = poly.segments[poly.faces[i].segments[1]];
-        Poly::Segment e_seg = poly.segments[poly.faces[i].segments[2]];
-        Eigen::Vector3d v = poly.vertices[v_seg.p1] - poly.vertices[v_seg.p2];
-        Eigen::Vector3d u = poly.vertices[u_seg.p1] - poly.vertices[u_seg.p2];
-        if (v.isApprox(u))
-            u = poly.vertices[e_seg.p1] - poly.vertices[e_seg.p2];
-        Eigen::Vector3d n = v.cross(u);
+        Eigen::Vector3d p1, p2, p3;
+        p1 = poly.vertices[poly.faces[i].p1];
+        p2 = poly.vertices[poly.faces[i].p2];
+        p3 = poly.vertices[poly.faces[i].p3];
+        Eigen::Vector3d v, u;
+        v = p1 - p2;
+        u = p3 - p2;
+        Eigen::Vector3d n = u.cross(v);
         double a = n(0), c = n(2);
         double z_delta = -(a / c);
         double lowest_y = std::numeric_limits<double>::max();
@@ -1000,35 +974,36 @@ void Scene::Pipeline::apply_phong_shading_to_polyhedron(Poly::Polyhedron poly, E
         Eigen::Vector3d v = poly.vertices[v_seg.p1] - poly.vertices[v_seg.p2];
         Eigen::Vector3d u = poly.vertices[u_seg.p1] - poly.vertices[u_seg.p2];
         // Phong Calculations
-        Eigen::Vector3d p1, p2, p3, p4;
-        p1 = poly.vertices[v_seg.p1];
-        p2 = poly.vertices[v_seg.p2];
-        p3 = poly.vertices[u_seg.p1];
-        p4 = poly.vertices[u_seg.p2];
+        Eigen::Vector3d p1, p2, p3;
+        p1 = poly.vertices[poly.faces[i].p1];
+        p2 = poly.vertices[poly.faces[i].p2];
+        p3 = poly.vertices[poly.faces[i].p3];
         Eigen::Vector3d v1, u1, n1;
         v1 = p1 - p2;
-        u1 = p3 - p4;
-        if (v_seg.successor == 1 && u_seg.successor == 1)
-            n1 = u1.cross(v1);
-        else
-            n1 = v1.cross(u1);
+        u1 = p3 - p2;
+        u1.cross(v1);
         n1.normalize();
+        Eigen::Vector3d vrp = camera.get_vrp();
         double a1 = std::abs(n1(0)), b1 = std::abs(n1(1)), c1 = std::abs(n1(2));
         Eigen::Vector3d center = p2 + a1 * (p1 - p2) + b1 * (p3 - p2);
-        Eigen::Vector3d s = camera.get_vrp() - center;
+        Eigen::Vector3d s = vrp - center;
         s.normalize();
         Eigen::Vector3d light_vector = lights_position - center;
         light_vector.normalize();
-        Eigen::Vector3d h = (light_vector + s);
+        Eigen::Vector3d h = light_vector + s;
         h.normalize();
         double specular_angle = n1.dot(h);
         if (specular_angle < 0)
             specular_angle = 0;
+        else if (specular_angle > 1)
+            specular_angle = 1;
         specular_angle = pow(specular_angle, poly.get_specular_exponent());
         //
+        v = v1;
+        u = u1;
         if (v.isApprox(u))
             u = poly.vertices[e_seg.p1] - poly.vertices[e_seg.p2];
-        Eigen::Vector3d n = v.cross(u);
+        Eigen::Vector3d n = u.cross(v);
         double a = n(0), c = n(2);
         double z_delta = -(a / c);
         double lowest_y = std::numeric_limits<double>::max();
@@ -1113,6 +1088,7 @@ void Scene::Pipeline::apply_phong_shading_to_polyhedron(Poly::Polyhedron poly, E
                 uint color;
                 for (int x = start_x; x < end_x && x < z_buffer.cols(); x++)
                 {
+                    start_normal.normalize();
                     color = calculate_lights_simplified(poly, start_normal, s, light_vector, specular_angle);
                     if (x < 0)
                         continue;

@@ -84,7 +84,7 @@ void identify_internal_faces(Poly::Polyhedron &poly, const Poly::Polyhedron &sli
         while (current_vertex != slice.vertices.size() - 1)
         {
             Poly::Face face;
-            int p1, p2, p3;
+            int p1 = -1, p2 = -1, p3 = -1;
             bool is_shared = std::find(shared_vertices.begin(), shared_vertices.end(), current_vertex) != shared_vertices.end();
             bool is_next_shared = std::find(shared_vertices.begin(), shared_vertices.end(), current_vertex + 1) != shared_vertices.end();
             if (is_next_shared && is_shared)
@@ -96,7 +96,8 @@ void identify_internal_faces(Poly::Polyhedron &poly, const Poly::Polyhedron &sli
 
             bool bridge_travel = false, on_origin = false;
             // Shared Vertex, Go to Land B, add {Shared Vertex, Land B}
-            p2 = land_b[current_b];
+            if (current_b < land_b.size())
+                p2 = land_b[current_b];
             if (is_shared)
             {
                 p1 = current_vertex;
@@ -113,7 +114,8 @@ void identify_internal_faces(Poly::Polyhedron &poly, const Poly::Polyhedron &sli
             // Unshared Vertex, Go to Land B, add {Land A, Land B}
             else
             {
-                p1 = land_a[current_a];
+                if (current_a < land_a.size())
+                    p1 = land_a[current_a];
                 for (int i = 0; i < poly.segments.size(); i++)
                 {
                     if ((poly.segments[i].p1 == land_a[current_a] && poly.segments[i].p2 == land_b[current_b]) || (poly.segments[i].p1 == land_b[current_b] && poly.segments[i].p2 == land_a[current_a]))
@@ -154,6 +156,8 @@ void identify_internal_faces(Poly::Polyhedron &poly, const Poly::Polyhedron &sli
             }
             if (!bridge_travel)
             {
+                if (p3 == -1)
+                    p3 = land_a[current_a];
                 // Go back to Land A, add {Land B, Land A}
                 for (int i = 0; i < poly.segments.size(); i++)
                 {
@@ -235,7 +239,8 @@ void identify_external_faces(Poly::Polyhedron &poly, Poly::Polyhedron slice, int
         if (p1 == first_vertex || p2 == first_vertex)
             counter++;
     }
-    if (counter > 1) first_vertex_has_one_segment = true;
+    if (counter > 1)
+        first_vertex_has_one_segment = true;
     counter = 0;
     for (int i = 0; i < slice.segments.size(); i++)
     {
@@ -244,7 +249,8 @@ void identify_external_faces(Poly::Polyhedron &poly, Poly::Polyhedron slice, int
         if (p1 == last_vertex || p2 == last_vertex)
             counter++;
     }
-    if (counter > 1) second_vertex_has_one_segment = true;
+    if (counter > 1)
+        second_vertex_has_one_segment = true;
     // First Face
     bool is_shared = false;
     for (int i = 0; i < shared_vertices.size(); i++)
@@ -273,7 +279,7 @@ void identify_external_faces(Poly::Polyhedron &poly, Poly::Polyhedron slice, int
                 if (poly.segments[j].p1 == lands_map[i][0] && poly.segments[j].p2 == lands_map[next_i][0] || poly.segments[j].p1 == lands_map[next_i][0] && poly.segments[j].p2 == lands_map[i][0])
                 {
                     face.segments.insert(face.segments.begin(), j);
-                    
+
                     poly.segments[j].successor = 0;
                     break;
                 }
