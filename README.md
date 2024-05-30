@@ -1,3 +1,7 @@
+## Requirements
+
+This project builds using CMake, it can be easily installed through a os package manager in most linux-based systems, for further information check https://cmake.org/download/.
+
 ## Installation
 
 To install this program, just do the following commands:
@@ -5,7 +9,7 @@ To install this program, just do the following commands:
     mkdir build
     cd build
     cmake ..
-    cmake --build . --install target
+    cmake --build .
 
 The executable will be generated under src. If on Windows, then visual studio must be installed and you will have to use its compiling tools after building. Alternatively you can provide CMake with a path to a Mingw-like compiler.
 
@@ -23,6 +27,24 @@ The rendering and graphical parts of the pipeline were made utilizing **SDL2**, 
 However, it is also utilized **Imgui** for the graphical U.I. Imgui is presented as a "bloat-free" user interface framework that works seamlessly with many different graphical frameworks, including SDL2. This library was essential for building quick and responsive user interface. https://github.com/ocornut/imgui
 
 Lastly, it was also made use of the other open source project denominated Eigen. It works as a linear algebra library, being extremly useful for vector and matrix calculations. https://eigen.tuxfamily.org/index.php?title=Main_Page
+
+## SDL2
+
+The  SDL2 library quotely "provides low level access to audio, keyboard, mouse, joystick, and graphics hardware via OpenGL and Direct3D. More information on https://www.libsdl.org/.
+
+All the 3D graphics rendering is dealt through SDL, that is, the canvas the and viewport. The library allows for the manipulation of basic graphical primitives as well as texture creation, io managing and more. A big catch of the rendering is use a matricial representation, for that I needed a structure alike, SDL_Surface which then is converted to a drawable SDL_Texture.
+
+Textures allow for easy parallel rendering, caching and other more advanced topics for this project. For the pipeline all we wish is a structure to store our rendered data and therefore the true usefulness of SDL_Texture is mostly discarded.
+
+## Eigen
+
+This library is a popular open source library utilized for linear algebra calculations. Vectors and Matrices are extremely important in Computer Graphics, 3D Rendering, etc. A library that can both abstract those operations and structures as well as optimize them is essential for this sort of application.
+
+## ImGui
+
+As it was introduced, imgui presents a bloat-free way to create straight to the point user interfaces. It is extremely useful for flexibilizing game engines, physics engines and other tasks that are not preoccupied with all the effort required to create a responsive, useful and simple user interface to access its operations. It offers pre built widgets such as buttons, radiobuttons, menus and more. 
+
+ImGui coding flux is pretty simplistic as all you need to create an interface is commonly start a widget using its respective Start function, use other functions to populate its properties and then call an End function.  
 
 ## CMake
 

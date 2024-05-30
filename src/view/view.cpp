@@ -233,10 +233,11 @@ void View::draw_objects_menu()
 {
     if (this->menu_objects_open)
     {
-        ImGui::SetNextWindowSizeConstraints({ImGui::CalcTextSize("Object Options").x, 0.0f}, {-1, -1});
-        ImGui::Begin("Object Options", &this->menu_objects_open, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::SetNextWindowSizeConstraints({ImGui::CalcTextSize("Object Options").x, 0.0f}, {FLT_MAX, FLT_MAX});
+        ImGui::Begin("Object Options", &this->menu_objects_open, ImGuiWindowFlags_HorizontalScrollbar);
         ImGui::SetWindowFontScale(1.4f);
         ImGui::SetWindowPos({0, menu_height}, ImGuiCond_FirstUseEver);
+        ImVec2 window_size = ImGui::GetWindowSize();
         ImGui::Text("Selected Object");
         std::vector<const char *> object_names_c;
         for (int i = 0; i < object_names.size(); i++)
@@ -249,9 +250,7 @@ void View::draw_objects_menu()
             ImGui::InputDouble("##TY", &ty, 0.01, 0.01, "%.6f...");
             ImGui::InputDouble("##TZ", &tz, 0.01, 0.01, "%.6f...");
             if (ImGui::Button("Translate"))
-            {
                 this->pipeline.translate_object(selected_object, tx, ty, tz);
-            }
             ImGui::Text("Rotate (Degrees)");
             ImGui::Selectable("##LOCKPOSITIONROTATE", &lock_rotation_position);
             ImGui::SameLine();
@@ -299,9 +298,7 @@ void View::draw_objects_menu()
             ImGui::InputDouble("##SY", &sy, 0.01, 0.01, "%.6f...");
             ImGui::InputDouble("##SZ", &sz, 0.01, 0.01, "%.6f...");
             if (ImGui::Button("Scale"))
-            {
                 this->pipeline.scale_object(selected_object, sx, sy, sz);
-            }
             ImGui::Text("Material");
             double specular_exponent = this->pipeline.get_object_specular_exponent(selected_object);
             double pspecular_exponent = specular_exponent;
@@ -310,6 +307,7 @@ void View::draw_objects_menu()
             this->pipeline.get_object_ambient_coefficients(selected_object, &ac_r, &ac_g, &ac_b);
             this->pipeline.get_object_diffuse_coefficients(selected_object, &dc_r, &dc_g, &dc_b);
             this->pipeline.get_object_specular_coefficients(selected_object, &sc_r, &sc_g, &sc_b);
+            ImGui::PushItemWidth(200);
             ImGui::Text("Ambient Lighting Coefficients");
             ImGui::InputDouble("KaR", &ac_r, 0.01, 0.01, "%.6f...");
             ImGui::SameLine();
