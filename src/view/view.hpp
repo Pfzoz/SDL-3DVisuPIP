@@ -33,7 +33,7 @@ private:
     bool menu_projection_open = false;
     bool menu_shading_open = false;
     bool logical_size_follow_screen = false;
-    int selected_object = 0, selected_projection = 0;
+    int selected_object = -1, selected_projection = 0;
     bool wireframe_selected = true, wireframe_z_buffer_selected = false;
     double focal_length = 1.0f;
     // Object Vars

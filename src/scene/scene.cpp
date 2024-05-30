@@ -1170,6 +1170,11 @@ void distance_clipper(std::vector<Poly::Polyhedron> &polyhedra)
 
 void Scene::Pipeline::render(SDL_Renderer *renderer, SDL_Window *window)
 {
+    if (scene_objects.empty())
+    {
+        this->pipeline_altered = false;
+        return;
+    }
     Eigen::Matrix4d wv_matrix = this->window_to_viewport_matrix();
     Eigen::Matrix4d projection_matrix = this->get_projection_matrix();
     Eigen::Matrix4d src_matrix = this->camera.get_src_matrix();
