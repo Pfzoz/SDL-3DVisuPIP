@@ -686,9 +686,9 @@ void Scene::Pipeline::calculate_gouraud_shadings(std::vector<Poly::Polyhedron> &
             for (int k = 0; k < faces.size(); k++)
             {
                 Eigen::Vector3d p1, p2, p3;
-                p1 = polyhedra[i].vertices[polyhedra[i].faces[k].p1];
-                p2 = polyhedra[i].vertices[polyhedra[i].faces[k].p2];
-                p3 = polyhedra[i].vertices[polyhedra[i].faces[k].p3];
+                p1 = polyhedra[i].vertices[faces[k].p1];
+                p2 = polyhedra[i].vertices[faces[k].p2];
+                p3 = polyhedra[i].vertices[faces[k].p3];
                 Eigen::Vector3d v, u, n;
                 v = p1 - p2;
                 u = p3 - p2;
@@ -768,9 +768,9 @@ void Scene::Pipeline::calculate_phong_shadings(std::vector<Poly::Polyhedron> &po
             for (int k = 0; k < faces.size(); k++)
             {
                 Eigen::Vector3d p1, p2, p3;
-                p1 = polyhedra[i].vertices[polyhedra[i].faces[k].p1];
-                p2 = polyhedra[i].vertices[polyhedra[i].faces[k].p2];
-                p3 = polyhedra[i].vertices[polyhedra[i].faces[k].p3];
+                p1 = polyhedra[i].vertices[faces[k].p1];
+                p2 = polyhedra[i].vertices[faces[k].p2];
+                p3 = polyhedra[i].vertices[faces[k].p3];
                 Eigen::Vector3d v, u, n;
                 v = p1 - p2;
                 u = p3 - p2;
